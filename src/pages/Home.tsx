@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
 import Banner from "../components/Banner";
 import Row from "../components/Row";
 import requests from "../utils/requests";

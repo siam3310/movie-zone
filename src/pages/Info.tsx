@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "../utils/axios";
-import { Movie, baseUrl } from "../utils/requests";
+import { Movie } from "../utils/requests";
 import {
   FaDownload,
   FaPlay,
   FaPlus,
-  FaShareAlt,
   FaThumbsUp,
 } from "react-icons/fa";
 import { Skeleton } from "@mui/material";
@@ -221,8 +220,7 @@ function Info() {
 
       try {
         const imdbResponse = await fetch(
-          `https://api.themoviedb.org/3/tv/${content.id}/external_ids?api_key=${
-            import.meta.env.VITE_TMDB_API_KEY
+          `https://api.themoviedb.org/3/tv/${content.id}/external_ids?api_key=${import.meta.env.VITE_TMDB_API_KEY
           }`
         );
         const imdbData = await imdbResponse.json();
@@ -379,11 +377,10 @@ function Info() {
   };
 
   const handleDownload = (torrent: TorrentInfo) => {
-    const magnetLink = `magnet:?xt=urn:btih:${
-      torrent.hash
-    }&dn=${encodeURIComponent(
-      content?.title || ""
-    )}&tr=udp://open.demonii.com:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.coppersurfer.tk:6969&tr=udp://glotorrents.pw:6969/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://torrent.gresille.org:80/announce&tr=udp://p4p.arenabg.com:1337&tr=udp://tracker.leechers-paradise.org:6969`;
+    const magnetLink = `magnet:?xt=urn:btih:${torrent.hash
+      }&dn=${encodeURIComponent(
+        content?.title || ""
+      )}&tr=udp://open.demonii.com:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.coppersurfer.tk:6969&tr=udp://glotorrents.pw:6969/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://torrent.gresille.org:80/announce&tr=udp://p4p.arenabg.com:1337&tr=udp://tracker.leechers-paradise.org:6969`;
 
     const a = document.createElement("a");
     a.href = magnetLink;
@@ -554,11 +551,10 @@ function Info() {
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className={`relative inline-flex items-center px-4 py-2 rounded-l-md border ${
-              currentPage === 1
+            className={`relative inline-flex items-center px-4 py-2 rounded-l-md border ${currentPage === 1
                 ? "bg-gray-700 border-gray-600 cursor-not-allowed"
                 : "bg-[#2F2F2F] border-gray-600 hover:bg-[#3F3F3F]"
-            } text-sm font-medium text-white transition duration-300`}
+              } text-sm font-medium text-white transition duration-300`}
           >
             Previous
           </button>
@@ -586,11 +582,10 @@ function Info() {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium ${
-                    currentPage === page
+                  className={`relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium ${currentPage === page
                       ? "z-10 bg-[#E50914] text-white border-[#E50914]"
                       : "bg-[#2F2F2F] text-white hover:bg-[#3F3F3F]"
-                  } transition duration-300`}
+                    } transition duration-300`}
                 >
                   {page}
                 </button>
@@ -602,11 +597,10 @@ function Info() {
               setCurrentPage(Math.min(totalPages, currentPage + 1))
             }
             disabled={currentPage === totalPages}
-            className={`relative inline-flex items-center px-4 py-2 rounded-r-md border ${
-              currentPage === totalPages
+            className={`relative inline-flex items-center px-4 py-2 rounded-r-md border ${currentPage === totalPages
                 ? "bg-gray-700 border-gray-600 cursor-not-allowed"
                 : "bg-[#2F2F2F] border-gray-600 hover:bg-[#3F3F3F]"
-            } text-sm font-medium text-white transition duration-300`}
+              } text-sm font-medium text-white transition duration-300`}
           >
             Next
           </button>
@@ -959,17 +953,17 @@ function Info() {
                         {tvSeries.episodes.filter(
                           (ep) => ep.season === selectedSeason
                         ).length > itemsPerPage && (
-                          <Pagination
-                            totalItems={
-                              tvSeries.episodes.filter(
-                                (ep) => ep.season === selectedSeason
-                              ).length
-                            }
-                            currentPage={currentPage}
-                            setCurrentPage={setCurrentPage}
-                            itemsPerPage={itemsPerPage}
-                          />
-                        )}
+                            <Pagination
+                              totalItems={
+                                tvSeries.episodes.filter(
+                                  (ep) => ep.season === selectedSeason
+                                ).length
+                              }
+                              currentPage={currentPage}
+                              setCurrentPage={setCurrentPage}
+                              itemsPerPage={itemsPerPage}
+                            />
+                          )}
                       </div>
                     )}
                 </div>

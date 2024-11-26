@@ -208,7 +208,7 @@ function Banner({ fetchUrl }: Props) {
           )}
           {(movie.release_date || movie.first_air_date) && (
             <span className="font-medium">
-              {new Date(movie.release_date || movie.first_air_date).getFullYear()}
+              {new Date(movie.release_date || movie.first_air_date || Date.now()).getFullYear()}
             </span>
           )}
           <span className="px-2 py-0.5 border border-white/40 rounded text-sm font-medium">
