@@ -177,7 +177,7 @@ function Info() {
 
       try {
         const response = await fetch(
-          `https://yts.mx/api/v2/list_movies.json?query_term=${encodeURIComponent(
+          `${import.meta.env.VITE_YTS_API_URL}/list_movies.json?query_term=${encodeURIComponent(
             content.title
           )}`
         );
