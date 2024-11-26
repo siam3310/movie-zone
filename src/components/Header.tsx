@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import useAuth from '../hooks/useAuth'
 import { BellIcon, ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
 
 function Header() {
@@ -10,7 +9,6 @@ function Header() {
   const [searchTerm, setSearchTerm] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuth()
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -39,15 +37,6 @@ function Header() {
       navigate(`/search?q=${encodeURIComponent(searchTerm)}`)
       setShowSearch(false)
       setSearchTerm('')
-    }
-  }
-
-  const handleLogout = async () => {
-    try {
-      await logout()
-      navigate('/login')
-    } catch (error) {
-      console.log(error)
     }
   }
 

@@ -88,16 +88,16 @@ function Info() {
   const [ytsError, setYtsError] = useState<string | null>(null);
   const [tvSeries, setTVSeries] = useState<TVSeriesDetails | null>(null);
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
-  const [isTVLoading, setIsTVLoading] = useState(false);
+  const [isTVLoading, setIsTVLoading] = useState<boolean>(false);
   const [tvError, setTVError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(6);
 
   useEffect(() => {
-    async function fetchContent() {
-      if (!id || !type) {
-        console.error("Missing id or type");
-        setError("Invalid content parameters");
+    const fetchContent = async () => {
+      if (!id || id === 'undefined') {
+        console.error("No ID provided");
+        setError("Content not found");
         setTimeout(() => navigate("/"), 2000);
         return;
       }
@@ -117,8 +117,13 @@ function Info() {
           const contentRes = await axios.get(`/${type}/${id}`);
           const contentData = contentRes.data;
 
+          if (!contentData) {
+            throw new Error("No content data received");
+          }
+
           setContent({
             ...contentData,
+            id: contentData.id,
             title: type === "tv" ? contentData.name : contentData.title,
             release_date:
               type === "tv"
@@ -158,12 +163,11 @@ function Info() {
               ? "Content not found"
               : "Error loading content"
           );
-          setTimeout(() => navigate("/"), 2000);
         }
       };
 
       fetchData().finally(() => setLoading(false));
-    }
+    };
 
     fetchContent();
   }, [id, type, navigate]);
@@ -210,9 +214,8 @@ function Info() {
 
   useEffect(() => {
     const fetchTVSeriesData = async () => {
-      if (!content || type !== "tv") return;
+      if (!content?.id || type !== "tv") return;
 
-      // console.log('Fetching TV series data for:', content.title);
       setIsTVLoading(true);
       setTVError(null);
 
@@ -230,55 +233,93 @@ function Info() {
           return;
         }
 
-        const response = await fetch(
+        const endpoints = [
+          `https://torrentio.strem.fun/stream/series/${imdbId}.json`,
           `https://torrentio.strem.fun/stream/movie/${imdbId}.json`
-        );
-        const data = await response.json();
+        ];
 
-        // console.log('Torrent data:', data);
+        let allStreams: any[] = [];
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(endpoint);
+            const data = await response.json();
 
-        if (data && data.streams && data.streams.length > 0) {
-          const processedEpisodes: TVEpisode[] = [];
-          const seasonsSet = new Set<number>();
+            if (data?.streams && Array.isArray(data.streams)) {
+              allStreams = [...allStreams, ...data.streams];
+            }
+          } catch (err) {
+            console.error(`Error fetching from ${endpoint}:`, err);
+          }
+        }
 
-          data.streams.forEach((stream: any) => {
-            const title = stream.title;
-            const seasonMatch = title.match(/S(\d{1,2})/i);
-            const episodeMatch = title.match(/E(\d{1,2})/i);
-            const qualityMatch = title.match(/\b(720p|1080p|2160p|4K)\b/i);
+        if (allStreams.length === 0) {
+          setTVError("No episodes found for this TV series");
+          return;
+        }
 
-            if (seasonMatch && episodeMatch) {
-              const season = parseInt(seasonMatch[1]);
-              const episode = parseInt(episodeMatch[1]);
-              seasonsSet.add(season);
+        const processedEpisodes: TVEpisode[] = [];
+        const seasonsSet = new Set<number>();
 
-              const size = stream.size ? formatBytes(stream.size) : "Unknown";
+        allStreams.forEach((stream: any) => {
+          if (!stream?.title || typeof stream.title !== 'string') return;
 
+          const title = stream.title;
+          const seasonMatch = title.match(/S(\d{1,2})/i);
+          const episodeMatch = title.match(/E(\d{1,2})/i);
+          const qualityMatch = title.match(/\b(480p|720p|1080p|2160p|4K|UHD|HD|WEB-DL|WEBDL|WEB|BRRip|BluRay)\b/i);
+
+          if (seasonMatch && episodeMatch) {
+            const season = parseInt(seasonMatch[1], 10);
+            const episode = parseInt(episodeMatch[1], 10);
+
+            if (isNaN(season) || isNaN(episode) || season <= 0 || episode <= 0) return;
+
+            seasonsSet.add(season);
+
+            const size = stream.size ? formatBytes(stream.size) : "Unknown";
+            let quality = qualityMatch ? qualityMatch[0].toUpperCase() : "Unknown";
+            if (quality === "UHD" || quality === "2160P") quality = "4K";
+            if (quality === "WEBDL" || quality === "WEB") quality = "WEB-DL";
+
+            let magnetLink = stream.url;
+            if (stream.infoHash && (!magnetLink || !magnetLink.startsWith('magnet:'))) {
+              magnetLink = `magnet:?xt=urn:btih:${stream.infoHash}&dn=${encodeURIComponent(title)}`;
+            }
+
+            if (magnetLink && typeof magnetLink === 'string') {
               processedEpisodes.push({
-                title: stream.title,
+                title: `${content.title || content.name} S${season.toString().padStart(2, '0')}E${episode.toString().padStart(2, '0')} [${quality}]`,
                 season,
                 episode,
-                magnet_link: stream.url,
+                magnet_link: magnetLink,
                 size,
-                seeds: stream.seeds || 0,
-                peers: stream.peers || 0,
-                quality: qualityMatch ? qualityMatch[0] : "Unknown",
+                seeds: typeof stream.seeds === 'number' ? stream.seeds : 0,
+                peers: typeof stream.peers === 'number' ? stream.peers : 0,
+                quality,
               });
             }
-          });
-
-          const seasons = Array.from(seasonsSet).sort((a, b) => a - b);
-          if (seasons.length > 0) {
-            setSelectedSeason(seasons[0]);
           }
+        });
 
-          setTVSeries({
-            episodes: processedEpisodes,
-            seasons,
-          });
-        } else {
-          setTVError("No episodes found for this TV series");
+        if (processedEpisodes.length === 0) {
+          setTVError("No valid episodes found");
+          return;
         }
+
+        processedEpisodes.sort((a, b) => {
+          if (a.season !== b.season) return a.season - b.season;
+          return a.episode - b.episode;
+        });
+
+        const seasons = Array.from(seasonsSet).sort((a, b) => a - b);
+        if (seasons.length > 0) {
+          setSelectedSeason(seasons[0]);
+        }
+
+        setTVSeries({
+          episodes: processedEpisodes,
+          seasons,
+        });
       } catch (err) {
         console.error("Error fetching TV series:", err);
         setTVError("Failed to fetch TV series download information");
@@ -288,7 +329,42 @@ function Info() {
     };
 
     fetchTVSeriesData();
-  }, [content, type]);
+  }, [content?.id, type, content?.title, content?.name]);
+
+  const handleTVDownload = (episode: TVEpisode) => {
+    if (!episode.magnet_link) {
+      console.error("Invalid magnet link");
+      return;
+    }
+
+    console.log('Download link:', episode.magnet_link); // Debug log
+
+    // Add trackers to improve download speed
+    const trackers = [
+      'udp://open.demonii.com:1337/announce',
+      'udp://tracker.openbittorrent.com:80',
+      'udp://tracker.coppersurfer.tk:6969',
+      'udp://glotorrents.pw:6969/announce',
+      'udp://tracker.opentrackr.org:1337/announce',
+      'udp://torrent.gresille.org:80/announce',
+      'udp://p4p.arenabg.com:1337',
+      'udp://tracker.leechers-paradise.org:6969'
+    ];
+
+    let finalMagnetLink = episode.magnet_link;
+    if (!finalMagnetLink.includes('&tr=')) {
+      finalMagnetLink += '&' + trackers.map(t => `tr=${encodeURIComponent(t)}`).join('&');
+    }
+
+    console.log('Final magnet link:', finalMagnetLink); // Debug log
+
+    // Create and trigger download
+    const a = document.createElement("a");
+    a.href = finalMagnetLink;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   const formatBytes = (bytes: number, decimals = 2) => {
     if (!bytes) return "0 Bytes";
@@ -314,11 +390,6 @@ function Info() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  };
-
-  const handleTVDownload = (episode: TVEpisode) => {
-    // console.log('Downloading episode:', episode);
-    window.location.href = episode.magnet_link;
   };
 
   const LoadingSkeleton = () => (

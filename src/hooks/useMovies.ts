@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Movie } from '../types'
+import { Movie } from '@/utils/requests'
 
 export function useMovies(fetchUrl: string) {
   const [movies, setMovies] = useState<Movie[]>([])

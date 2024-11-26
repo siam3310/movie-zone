@@ -17,23 +17,28 @@ function New() {
   const fetchNewContent = async () => {
     try {
       const response = await axios.get("/trending/all/week");
-      const results = response.data.results.map((item: any) => ({
-        ...item,
-        media_type: item.media_type || "movie",
-      })).filter((item: Movie) => 
-        item.backdrop_path !== null && item.poster_path !== null
-      );
-      
+      const results: Movie[] = response.data.results
+        .map((item: any): Movie => ({
+          ...item,
+          media_type: item.media_type || "movie",
+        }))
+        .filter(
+          (item: Movie) =>
+            item.id !== undefined &&
+            item.backdrop_path !== null &&
+            item.poster_path !== null
+        );
+
       // Remove duplicates based on id
       const uniqueMovies = Array.from(
         new Map(results.map((item: Movie) => [item.id, item])).values()
       );
-      
+
       setMovies(uniqueMovies);
       setError(null);
-    } catch (error) {
+    } catch (error: any) {
       setError("Failed to load new content. Please try again later.");
-      console.error("Error fetching new content:", error);
+      console.error("Error fetching new content:", error.message || error);
     } finally {
       setLoading(false);
     }
@@ -43,26 +48,25 @@ function New() {
     return (
       <div className="mt-[68px] min-h-screen bg-[#141414]">
         <div className="px-2 py-6 md:px-3 lg:px-4">
-          <Skeleton 
-            variant="text" 
-            width={200} 
-            height={40} 
-            sx={{ bgcolor: '#2b2b2b', marginBottom: '24px' }} 
+          <Skeleton
+            variant="text"
+            aria-label="Loading header text"
+            width={200}
+            height={40}
+            sx={{ bgcolor: '#2b2b2b', marginBottom: '24px' }}
           />
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {[...Array(15)].map((_, index) => (
               <div key={index} className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
                 <Skeleton
                   variant="rectangular"
+                  aria-label="Loading movie thumbnail"
                   width="100%"
                   height="100%"
-                  sx={{ 
+                  sx={{
                     bgcolor: '#2b2b2b',
                     borderRadius: '0.125rem',
                     transform: 'scale(1)',
-                    '&::after': {
-                      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)'
-                    }
                   }}
                 />
               </div>
@@ -78,7 +82,7 @@ function New() {
       <div className="mt-[68px] min-h-screen bg-[#141414] flex items-center justify-center">
         <div className="text-white text-center">
           <p className="text-xl">{error}</p>
-          <button 
+          <button
             onClick={() => {
               setLoading(true);
               fetchNewContent();
