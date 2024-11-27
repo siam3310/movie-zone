@@ -91,6 +91,7 @@ function Info() {
   const [tvError, setTVError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(6);
+  const [selectedQuality, setSelectedQuality] = useState<string>("all");
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -552,8 +553,8 @@ function Info() {
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
             className={`relative inline-flex items-center px-4 py-2 rounded-l-md border ${currentPage === 1
-                ? "bg-gray-700 border-gray-600 cursor-not-allowed"
-                : "bg-[#2F2F2F] border-gray-600 hover:bg-[#3F3F3F]"
+              ? "bg-gray-700 border-gray-600 cursor-not-allowed"
+              : "bg-[#2F2F2F] border-gray-600 hover:bg-[#3F3F3F]"
               } text-sm font-medium text-white transition duration-300`}
           >
             Previous
@@ -583,8 +584,8 @@ function Info() {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={`relative inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium ${currentPage === page
-                      ? "z-10 bg-[#E50914] text-white border-[#E50914]"
-                      : "bg-[#2F2F2F] text-white hover:bg-[#3F3F3F]"
+                    ? "z-10 bg-[#E50914] text-white border-[#E50914]"
+                    : "bg-[#2F2F2F] text-white hover:bg-[#3F3F3F]"
                     } transition duration-300`}
                 >
                   {page}
@@ -598,8 +599,8 @@ function Info() {
             }
             disabled={currentPage === totalPages}
             className={`relative inline-flex items-center px-4 py-2 rounded-r-md border ${currentPage === totalPages
-                ? "bg-gray-700 border-gray-600 cursor-not-allowed"
-                : "bg-[#2F2F2F] border-gray-600 hover:bg-[#3F3F3F]"
+              ? "bg-gray-700 border-gray-600 cursor-not-allowed"
+              : "bg-[#2F2F2F] border-gray-600 hover:bg-[#3F3F3F]"
               } text-sm font-medium text-white transition duration-300`}
           >
             Next
@@ -879,31 +880,56 @@ function Info() {
                     tvSeries.episodes.length > 0 && (
                       <div>
                         {/* Season selector */}
-                        <div className="mb-6">
-                          <label className="text-white text-lg font-medium mb-2 block">
-                            Select Season
-                          </label>
-                          <select
-                            value={selectedSeason}
-                            onChange={(e) => {
-                              setSelectedSeason(Number(e.target.value));
-                              setCurrentPage(1);
-                            }}
-                            className="bg-[#2F2F2F] text-white px-4 py-2 rounded-md w-full md:w-auto focus:outline-none focus:ring-2 focus:ring-[#E50914]"
-                          >
-                            {tvSeries.seasons.map((season) => (
-                              <option key={season} value={season}>
-                                Season {season}
-                              </option>
-                            ))}
-                          </select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-white text-lg font-medium mb-2 block">
+                              Select Season
+                            </label>
+                            <select
+                              value={selectedSeason}
+                              onChange={(e) => {
+                                setSelectedSeason(Number(e.target.value));
+                                setCurrentPage(1);
+                              }}
+                              className="bg-[#2F2F2F] text-white px-4 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#E50914]"
+                            >
+                              {tvSeries.seasons.map((season) => (
+                                <option key={season} value={season}>
+                                  Season {season}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="mb-6">
+                            <label className="text-white text-lg font-medium mb-2 block">
+                              Select Quality
+                            </label>
+                            <select
+                              value={selectedQuality}
+                              onChange={(e) => {
+                                setSelectedQuality(e.target.value);
+                                setCurrentPage(1);
+                              }}
+                              className="bg-[#2F2F2F] text-white px-4 py-2 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-[#E50914]"
+                            >
+                              <option value="all">All Qualities</option>
+                              <option value="4K">4K</option>
+                              <option value="1080P">1080p</option>
+                              <option value="720P">720p</option>
+                              <option value="WEB-DL">WEB-DL</option>
+                            </select>
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {getCurrentItems(
                             tvSeries.episodes
-                              .filter((ep) => ep.season === selectedSeason)
-                              .sort((a, b) => a.episode - b.episode)
+                              .filter(
+                                (episode) =>
+                                  episode.season === selectedSeason &&
+                                  (selectedQuality === "all" ||
+                                    episode.quality.toUpperCase() === selectedQuality)
+                              )
                           ).map((episode, index) => (
                             <div
                               key={index}

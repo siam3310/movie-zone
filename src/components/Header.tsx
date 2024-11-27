@@ -115,7 +115,7 @@ function Header() {
         <div className="flex items-center space-x-4 text-sm">
           <>
             <button
-              className="hidden sm:inline h-6 w-6 cursor-pointer transition hover:text-[#b3b3b3]"
+              className="h-6 w-6 cursor-pointer transition hover:text-[#b3b3b3]"
               onClick={() => setShowSearch(true)}
             >
               <SearchIcon className="h-6 w-6" />
