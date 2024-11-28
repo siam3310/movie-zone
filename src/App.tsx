@@ -6,7 +6,7 @@ import TVShows from './pages/TVShows'
 import MyList from './pages/MyList'
 import Search from './pages/Search'
 import New from './pages/New'
-import Info from './pages/Info'
+import Info from './pages/View'
 
 function App() {
   return (

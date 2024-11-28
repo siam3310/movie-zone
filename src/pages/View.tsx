@@ -74,7 +74,7 @@ interface TVSeriesDetails {
   seasons: number[];
 }
 
-function Info() {
+function View() {
   const { type, id } = useParams();
   const navigate = useNavigate();
   const [content, setContent] = useState<Movie | null>(null);
@@ -1142,4 +1142,4 @@ function Info() {
   );
 }
 
-export default Info;
+export default View;
