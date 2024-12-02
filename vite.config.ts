@@ -19,6 +19,29 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/eztv': {
+        target: 'https://eztv.wf/api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/eztv/, ''),
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://eztv.wf'
+        },
+        timeout: 10000
+      },
+      '/torrentio': {
+        target: 'https://torrentio.strem.fun',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/torrentio/, '/stream'),
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Content-Type': 'application/json',
+          'Origin': 'https://torrentio.strem.fun'
+        },
+        timeout: 10000
+      }
     },
     watch: {
       usePolling: true,

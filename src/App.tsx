@@ -7,6 +7,18 @@ import MyList from './pages/MyList'
 import Search from './pages/Search'
 import New from './pages/New'
 import Info from './pages/View'
+import { initializeMediaProcessors } from './utils/media/index';
+import { DEFAULT_ENDPOINTS, DEFAULT_TRACKERS } from './utils/media/endpoints';
+
+// Initialize media processors
+initializeMediaProcessors({
+  tmdbApiKey: import.meta.env.VITE_TMDB_API_KEY,
+  userAgent: 'MovieZone/1.0',
+  primaryEndpoints: DEFAULT_ENDPOINTS.primary,
+  secondaryEndpoints: DEFAULT_ENDPOINTS.secondary,
+  fallbackEndpoints: DEFAULT_ENDPOINTS.fallback,
+  trackers: DEFAULT_TRACKERS
+});
 
 function App() {
   return (
