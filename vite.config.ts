@@ -14,33 +14,30 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '/api': {
+      '/api/tmdb': {
         target: 'https://api.themoviedb.org/3',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (path) => path.replace(/^\/api\/tmdb/, ''),
       },
-      '/eztv': {
-        target: 'https://eztv.wf/api',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/eztv/, ''),
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Referer': 'https://eztv.wf'
-        },
-        timeout: 10000
-      },
-      '/torrentio': {
+      '/api/torrentio': {
         target: 'https://torrentio.strem.fun',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/torrentio/, '/stream'),
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Content-Type': 'application/json',
-          'Origin': 'https://torrentio.strem.fun'
-        },
-        timeout: 10000
+        rewrite: (path) => path.replace(/^\/api\/torrentio/, ''),
+      },
+      '/api/yts': {
+        target: 'https://yts.mx/api/v2',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/yts/, ''),
+      },
+      '/api/eztv': {
+        target: 'https://eztv.re/api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/eztv/, ''),
+      },
+      '/api/imdb': {
+        target: 'https://v2.sg.media-imdb.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/imdb/, ''),
       }
     },
     watch: {

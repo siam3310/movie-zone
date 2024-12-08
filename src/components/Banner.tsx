@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "../utils/axios";
+import { Movie } from "../utils/requests";
 import { baseUrl } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@mui/material";
-import { Movie } from "@/types/movie";
 
 interface Props {
   fetchUrl: string;
@@ -51,13 +51,6 @@ function Banner({ fetchUrl }: Props) {
           `/${randomItem.media_type}/${randomItem.id}?append_to_response=videos,similar,recommendations`
         );
 
-        // Process the media details
-        const processedMovie = {
-          ...mediaDetails,
-          media_type: randomItem.media_type,
-          runtime: mediaDetails.runtime || (mediaDetails.episode_run_time ? mediaDetails.episode_run_time[0] : 0)
-        };
-
         // Find trailer
         if (mediaDetails.videos?.results?.length > 0) {
           const trailer = mediaDetails.videos.results.find(
@@ -69,7 +62,10 @@ function Banner({ fetchUrl }: Props) {
           }
         }
 
-        setMovie(processedMovie);
+        setMovie({
+          ...mediaDetails,
+          media_type: randomItem.media_type // Ensure media_type is preserved
+        });
       } catch (error) {
         console.error("Error fetching banner data:", error);
       } finally {
@@ -221,7 +217,7 @@ function Banner({ fetchUrl }: Props) {
           <span className="px-2 py-0.5 border border-white/40 rounded text-sm font-medium">
             {movie.media_type === 'movie' ? 'Movie' : 'TV Series'}
           </span>
-          {movie.runtime && movie.runtime > 0 && (
+          {movie.runtime > 0 && (
             <span className="font-medium">
               {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
             </span>

@@ -1,85 +1,99 @@
-export const formatBytes = (bytes: number, decimals = 2) => {
-  if (!bytes) return "0 B";
-  
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  
-  // Find appropriate unit
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  // Adjust decimals based on size
-  let finalDecimals;
-  if (i >= 3) { // GB or TB
-    finalDecimals = 2;
-  } else if (i === 2) { // MB
-    finalDecimals = 1;
-  } else {
-    finalDecimals = 0;
-  }
-  
-  // Calculate size with appropriate decimals
-  const size = parseFloat((bytes / Math.pow(k, i)).toFixed(finalDecimals));
-  
-  // Format with appropriate unit
-  return `${size} ${sizes[i]}`;
+import { TorrentInfo } from "../types/torrent";
+
+export const normalizeTitle = (title: string): string => {
+  return title.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 };
 
-export const getQualityFromTitle = (title: string, stream: any): string => {
-  const resolutionMatch = title.match(/\b(480p|720p|1080p|2160p|4K|UHD)\b/i);
-  if (resolutionMatch) {
-    const quality = resolutionMatch[0].toUpperCase();
-    if (quality === "UHD" || quality === "2160P") return "4K";
-    return quality;
+export const getTitleVariations = (title: string): string[] => {
+  const variations = [title];
+  
+  // Remove common prefixes
+  const withoutPrefix = title.replace(/^(the|a|an)\s+/i, '');
+  if (withoutPrefix !== title) variations.push(withoutPrefix);
+
+  // Handle special cases like "Harry Potter"
+  if (title.toLowerCase().includes('harry potter')) {
+    variations.push('Harry Potter');
+    variations.push(title.replace(/Harry Potter and /i, 'Harry Potter '));
+    variations.push(title.replace(/Harry Potter and the /i, 'Harry Potter '));
+    variations.push(title.replace(/Harry Potter & /i, 'Harry Potter '));
+    variations.push(title.replace(/Harry Potter & the /i, 'Harry Potter '));
   }
 
-  if (typeof stream?.size === 'number') {
-    const sizeGB = stream.size / (1024 * 1024 * 1024);
-    if (sizeGB > 20) return "4K";
-    if (sizeGB > 4) return "1080P";
-    if (sizeGB > 1) return "720P";
-    return "480P";
+  variations.push(title.split(':')[0]);
+  variations.push(title.split(' - ')[0]);
+  variations.push(title.split(' (')[0]);
+
+  return [...new Set(variations)].filter(Boolean);
+};
+
+export const calculateTrustScore = (torrent: TorrentInfo): number => {
+  let score = 0;
+  const maxScore = 100;
+
+  // Quality score (25%)
+  if (torrent.quality) {
+    switch (torrent.quality.toLowerCase()) {
+      case "2160p":
+      case "4k":
+        score += 25;
+        break;
+      case "1080p":
+        score += 20;
+        break;
+      case "720p":
+        score += 15;
+        break;
+      default:
+        score += 10;
+    }
   }
 
-  return "720P";
-};
+  // Source reputation (25%)
+  score += 25;
 
-export const getReleaseTypeFromTitle = (title: string): string => {
-  const webMatch = title.match(/\b(WEB-DL|WEB-RIP|WEBRip|WEB)\b/i);
-  if (webMatch) return webMatch[0].toUpperCase();
-
-  const hdtvMatch = title.match(/\b(HDTV|HD-TV)\b/i);
-  if (hdtvMatch) return "HDTV";
-
-  const blurayMatch = title.match(/\b(BluRay|BRRip|BDRip)\b/i);
-  if (blurayMatch) return "BluRay";
-
-  return "Unknown";
-};
-
-export const getEncodingFromTitle = (title: string): string => {
-  const encodingMatch = title.match(/\b(x264|x265|HEVC|H264|H265)\b/i);
-  return encodingMatch ? encodingMatch[0].toUpperCase() : '';
-};
-
-export const getSizeFromTitle = (title: string): number | null => {
-  const sizeMatch = title.match(/(\d+(?:\.\d+)?)\s*(GB|MB|KB)/i);
-  if (!sizeMatch) return null;
-
-  const [, size, unit] = sizeMatch;
-  const numSize = parseFloat(size);
-
-  switch (unit.toUpperCase()) {
-    case 'GB': return numSize * 1024 * 1024 * 1024;
-    case 'MB': return numSize * 1024 * 1024;
-    case 'KB': return numSize * 1024;
-    default: return null;
+  // Seeders score (25%)
+  if (torrent.seeds) {
+    if (torrent.seeds > 1000) score += 25;
+    else if (torrent.seeds > 500) score += 20;
+    else if (torrent.seeds > 100) score += 15;
+    else if (torrent.seeds > 50) score += 10;
+    else score += 5;
   }
+
+  // Additional metadata (25%)
+  if (torrent.size) score += 10;
+  if (torrent.date_uploaded) score += 5;
+  if (torrent.type) score += 5;
+  if (torrent.peers && torrent.peers > 0) score += 5;
+
+  return Math.min(score, maxScore);
 };
 
-export const getYearFromTitle = (title: string): number | null => {
-  const yearMatch = title.match(/(?:\(|\.|^|\s)(\d{4})(?:\)|\.|$|\s)/);
-  if (!yearMatch) return null;
+export const sortTorrents = (torrents: TorrentInfo[]): TorrentInfo[] => {
+  return [...torrents].sort((a, b) => {
+    // First by main movie status
+    if (a.is_main_movie && !b.is_main_movie) return -1;
+    if (!a.is_main_movie && b.is_main_movie) return 1;
 
-  const year = parseInt(yearMatch[1]);
-  return year >= 1900 && year <= 2030 ? year : null;
+    // Then by quality
+    const qualityOrder = {
+      '2160p': 4,
+      '1080p': 3,
+      '720p': 2,
+      '480p': 1
+    };
+    const qualityDiff = (qualityOrder[b.resolution as keyof typeof qualityOrder] || 0) -
+                       (qualityOrder[a.resolution as keyof typeof qualityOrder] || 0);
+    if (qualityDiff !== 0) return qualityDiff;
+
+    // Then by seeds
+    const seedsDiff = (b.seeds || 0) - (a.seeds || 0);
+    if (seedsDiff !== 0) return seedsDiff;
+
+    return (b.trustScore || 0) - (a.trustScore || 0);
+  });
 };

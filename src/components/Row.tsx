@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import axios from "../utils/axios";
 import Thumbnail from "./Thumbnail";
+import { Movie } from "../utils/requests";
 import { Skeleton } from '@mui/material'
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { Movie } from '@/types/movie';
 
 interface Props {
   title: string;
