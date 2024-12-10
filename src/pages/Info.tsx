@@ -35,8 +35,7 @@ function Info() {
 
       try {
         const response = await fetch(
-          `https://api.themoviedb.org/3/${type}/${id}?api_key=${
-            import.meta.env.VITE_TMDB_API_KEY
+          `https://api.themoviedb.org/3/${type}/${id}?api_key=${import.meta.env.VITE_TMDB_API_KEY
           }&append_to_response=videos,credits`
         );
 
@@ -45,7 +44,7 @@ function Info() {
         }
 
         const data = await response.json();
-        
+
         // Transform the data to match the Movie type
         setContent({
           ...data,
@@ -149,6 +148,15 @@ function Info() {
                 >
                   <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
                   <span className="font-semibold text-lg">Watch Trailer</span>
+                </button>
+              )}
+              {content?.media_type === 'movie' && (
+                <button
+                  onClick={() => window.open(`https://vidsrc.to/embed/movie/${content.imdb_id}`, '_blank')}
+                  className="flex items-center gap-2 px-8 py-3 bg-gray-500/30 hover:bg-gray-500/40 text-white rounded transition duration-300 group"
+                >
+                  <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
+                  <span className="font-semibold text-lg">Watch Movie</span>
                 </button>
               )}
               <div className="flex items-center gap-2">
