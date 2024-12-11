@@ -211,7 +211,7 @@ function Info() {
             <h2 className="text-2xl font-semibold text-white mb-4">
               Download Options
             </h2>
-            <div className="bg-[#181818] rounded-lg shadow-xl p-6">
+            <div>
               {type === "movie" ? (
                 <MovieProcess
                   content={content}

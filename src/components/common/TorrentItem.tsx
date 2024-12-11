@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaSeedling, FaFileDownload, FaMagnet } from "react-icons/fa";
+import { FaSeedling, FaFileDownload, FaMagnet, FaFilm, FaHdd, FaDownload, FaUsers, FaShieldAlt, FaServer } from "react-icons/fa";
 import { TorrentInfo } from '../../types/torrent';
 
 interface TorrentItemProps {
@@ -9,10 +9,10 @@ interface TorrentItemProps {
 }
 
 const getTrustLevelColor = (trustScore: number) => {
-  if (trustScore >= 80) return "bg-green-500";
-  if (trustScore >= 60) return "bg-blue-500";
-  if (trustScore >= 40) return "bg-yellow-500";
-  return "bg-red-500";
+  if (trustScore >= 80) return "text-green-500 bg-green-500/20 border-green-500/30";
+  if (trustScore >= 60) return "text-blue-500 bg-blue-500/20 border-blue-500/30";
+  if (trustScore >= 40) return "text-yellow-500 bg-yellow-500/20 border-yellow-500/30";
+  return "text-red-500 bg-red-500/20 border-red-500/30";
 };
 
 const formatSize = (size: string) => {
@@ -20,54 +20,92 @@ const formatSize = (size: string) => {
 };
 
 export const TorrentItem: React.FC<TorrentItemProps> = ({ torrent, onDownload, onMagnetDownload }) => {
+  const trustLevelClass = getTrustLevelColor(torrent.trustScore || 0);
+  
   return (
-    <div className="group flex items-center justify-between gap-4 py-2 px-4 bg-gray-800/40 hover:bg-gray-800/60 border-b border-gray-700/50 transition-colors duration-200">
-      {/* Quality Badge */}
-      <div className="hidden sm:flex items-center gap-2 min-w-[100px]">
-        <div className={`h-2 w-2 rounded-full ${getTrustLevelColor(torrent.trustScore || 0)}`} />
-        <span className="font-medium whitespace-nowrap">{torrent.quality}</span>
+    <div className="group relative flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-gray-800/40 
+                    hover:bg-gray-800/60 border border-gray-700/50 rounded-lg transition-all duration-200 
+                    hover:shadow-lg hover:scale-[1.01]">
+      {/* Left Section - Quality and Trust Score */}
+      <div className="flex flex-wrap items-center gap-3 min-w-[140px]">
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border ${trustLevelClass}`}>
+          <FaShieldAlt className="w-3.5 h-3.5" />
+          <span className="text-sm font-medium">{torrent.quality}</span>
+        </div>
       </div>
 
-      {/* Type & Size */}
-      <div className="flex items-center gap-4 flex-1 min-w-[120px]">
-        <span className="text-sm text-gray-400 hidden md:inline">{torrent.type}</span>
-        <span className="text-sm text-gray-400">{formatSize(torrent.size)}</span>
+      {/* Middle Section - Type, Size, Seeds */}
+      <div className="flex flex-wrap items-center gap-6 flex-1">
+        {/* Type */}
+        <div className="flex items-center gap-2 text-gray-300">
+          <FaFilm className="w-4 h-4 text-purple-400" />
+          <span className="text-sm">{torrent.type}</span>
+        </div>
+
+        {/* Size */}
+        <div className="flex items-center gap-2 text-gray-300">
+          <FaHdd className="w-4 h-4 text-blue-400" />
+          <span className="text-sm">{formatSize(torrent.size)}</span>
+        </div>
+
+        {/* Provider */}
+        <div className="flex items-center gap-2 text-gray-300">
+          <FaServer className="w-4 h-4 text-emerald-400" />
+          <span className="text-sm">{torrent.provider}</span>
+        </div>
+
+        {/* Seeds/Peers */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <FaSeedling className="w-4 h-4 text-green-400" />
+            <span className="text-sm font-medium text-green-400">{torrent.seeds}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <FaUsers className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-blue-400">{torrent.peers}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Seeds */}
-      <div className="flex items-center gap-2 text-green-500 min-w-[80px]">
-        <FaSeedling className="text-sm" />
-        <span className="font-medium">{torrent.seeds}</span>
-      </div>
-
-      {/* Download Buttons */}
-      <div className="flex items-center gap-2">
+      {/* Right Section - Download Buttons */}
+      <div className="flex items-center gap-2 self-end sm:self-center">
         <button
           onClick={() => onDownload(torrent)}
-          className="flex items-center gap-1 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 border border-blue-500/50 
-                   rounded-md transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500 border border-blue-500/30 
+                   rounded-md transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20 group/btn"
           title="Download .torrent file"
         >
-          <FaFileDownload className="text-sm" />
-          <span className="hidden sm:inline text-sm">Torrent</span>
+          <FaFileDownload className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+          <span className="hidden sm:inline text-sm font-medium">Torrent</span>
         </button>
         <button
           onClick={() => onMagnetDownload(torrent)}
-          className="flex items-center gap-1 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/50 
-                   rounded-md transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/20"
+          className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 hover:bg-purple-500 border border-purple-500/30 
+                   rounded-md transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/20 group/btn"
           title="Download magnet link"
         >
-          <FaMagnet className="text-sm" />
-          <span className="hidden sm:inline text-sm">Magnet</span>
+          <FaMagnet className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+          <span className="hidden sm:inline text-sm font-medium">Magnet</span>
         </button>
       </div>
 
-      {/* Hover Info - Small Screens */}
-      <div className="absolute left-0 right-0 top-full bg-gray-800/95 backdrop-blur-sm py-2 px-4 text-sm text-gray-400
-                    opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 sm:hidden">
-        <div className="flex justify-between">
-          <span>Quality: {torrent.quality} {torrent.type}</span>
-          <span>Trust: {torrent.trustScore}%</span>
+      {/* Mobile Info Tooltip */}
+      <div className="absolute left-0 right-0 -bottom-1 translate-y-full bg-gray-800/95 backdrop-blur-sm py-3 px-4 
+                    text-sm text-gray-400 rounded-md border border-gray-700/50 opacity-0 group-hover:opacity-100 
+                    transition-all duration-200 z-10 sm:hidden">
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <FaShieldAlt className="w-3.5 h-3.5" />
+              Trust Score: {torrent.trustScore}%
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <FaDownload className="w-3.5 h-3.5" />
+              Provider: {torrent.provider}
+            </span>
+          </div>
         </div>
       </div>
     </div>
