@@ -36,7 +36,7 @@ function Info() {
       try {
         const response = await fetch(
           `https://api.themoviedb.org/3/${type}/${id}?api_key=${import.meta.env.VITE_TMDB_API_KEY
-          }&append_to_response=videos,credits`
+          }&append_to_response=videos,credits,external_ids`
         );
 
         if (!response.ok) {
@@ -51,6 +51,7 @@ function Info() {
           title: type === "tv" ? data.name : data.title,
           media_type: type,
           release_date: type === "tv" ? data.first_air_date : data.release_date,
+          imdb_id: data.external_ids?.imdb_id || null,
         });
 
         // Set trailer
