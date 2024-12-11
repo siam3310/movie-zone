@@ -1,166 +1,178 @@
-import React, { useState, useMemo } from 'react';
-import { FaPlay, FaDownload, FaMagnet, FaSeedling, FaInfoCircle, FaChevronDown } from 'react-icons/fa';
+import React, { useState } from 'react';
 import { TMDBEpisode } from '../../utils/imdbApi';
-
-interface TorrentInfo {
-  infoHash: string;
-  quality: string;
-  size: string;
-  seeds: number;
-  peers: number;
-  provider: string;
-  magnetLink: string;
-}
+import { FaPlay, FaCalendar, FaStar, FaChevronDown, FaMagnet } from 'react-icons/fa';
+import { TorrentInfo } from '../../types/torrent';
+import VideoModal from '../common/VideoModal';
 
 interface EpisodeItemProps {
   episode: TMDBEpisode;
-  torrents: TorrentInfo[];
-  onDownload?: (torrent: TorrentInfo) => void;
-  onExpand?: () => void;
-  onWatch?: () => void;
+  onWatch: () => void;
+  torrents?: TorrentInfo[];
+  imdbId?: string;
+  tmdbId?: string;
 }
 
-const EpisodeItem: React.FC<EpisodeItemProps> = ({ episode, torrents = [], onDownload, onExpand, onWatch }) => {
+const EpisodeItem: React.FC<EpisodeItemProps> = ({ 
+  episode, 
+  onWatch, 
+  torrents = [],
+  imdbId,
+  tmdbId
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showTorrents, setShowTorrents] = useState(false);
-  const bestTorrent = useMemo(() => torrents[0], [torrents]);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
-  const handleExpand = () => {
-    if (!isExpanded && onExpand) {
-      onExpand();
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const handleDownload = (magnetLink: string) => {
+    window.open(magnetLink);
+  };
+
+  const getEmbedUrl = () => {
+    if (imdbId) {
+      return `https://vidsrc.xyz/embed/tv/${imdbId}/${episode.season_number}-${episode.episode_number}`;
+    } else if (tmdbId) {
+      return `https://vidsrc.xyz/embed/tv/${tmdbId}/${episode.season_number}-${episode.episode_number}`;
     }
-    setIsExpanded(!isExpanded);
+    return '';
   };
 
   return (
-    <div className={`bg-gray-800/40 rounded-lg transition-all duration-300 ${isExpanded ? 'p-6' : 'p-4'}`}>
-      {/* Main Episode Header - Always Visible */}
-      <div 
-        onClick={handleExpand}
-        className="flex items-center justify-between cursor-pointer group"
-      >
-        <div className="flex items-center gap-4 flex-1">
-          {/* Episode Number */}
-          <div className="w-12 h-12 flex items-center justify-center bg-gray-700/50 rounded-lg">
-            <span className="text-lg font-semibold text-gray-300">
-              {episode.episode_number}
-            </span>
-          </div>
-
-          {/* Episode Title & Basic Info */}
-          <div className="flex-1">
-            <h3 className="text-lg font-medium text-gray-200 group-hover:text-blue-400 transition-colors">
-              {episode.name}
-            </h3>
-            <div className="flex items-center gap-3 text-sm text-gray-400">
-              <span>{episode.air_date}</span>
-              {episode.vote_average > 0 && (
-                <span className="flex items-center">
-                  <svg className="w-4 h-4 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                  {episode.vote_average.toFixed(1)}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex items-center gap-4" onClick={e => e.stopPropagation()}>
-            <button
-              onClick={() => {
-                const baseUrl = 'https://vidsrc.xyz/embed/tv';
-                if (episode.imdb_id) {
-                  window.open(`${baseUrl}/${episode.imdb_id}?season=${episode.season_number}&episode=${episode.episode_number}`, '_blank');
-                } else {
-                  window.open(`${baseUrl}?tmdb=${episode.id}&season=${episode.season_number}&episode=${episode.episode_number}`, '_blank');
-                }
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-colors"
-            >
-              <FaPlay className="w-4 h-4" />
-              <span className="hidden sm:inline">Watch Now</span>
-            </button>
-            {bestTorrent && (
+    <>
+      <div className="group flex flex-col gap-4 bg-gray-800/40 hover:bg-gray-800/60 
+                    border border-gray-700/50 rounded-lg transition-all duration-200">
+        {/* Main Episode Info - Always Visible */}
+        <div 
+          className="flex flex-col sm:flex-row gap-4 p-4 cursor-pointer"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {/* Episode Thumbnail */}
+          <div className="relative w-full sm:w-48 aspect-video rounded-lg overflow-hidden flex-shrink-0">
+            <img
+              src={episode.still_path 
+                ? `https://image.tmdb.org/t/p/w300${episode.still_path}`
+                : 'https://via.placeholder.com/300x169?text=No+Image'}
+              alt={episode.name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 
+                          transition-opacity duration-200 flex items-center justify-center">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDownload?.(bestTorrent);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors"
+                onClick={() => setIsVideoModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg 
+                         transform scale-90 group-hover:scale-100 transition-transform duration-200"
               >
-                <FaMagnet className="w-4 h-4" />
-                <span className="hidden sm:inline">Download Best</span>
+                <FaPlay className="w-4 h-4" />
+                <span>Watch Now</span>
               </button>
-            )}
-            <div className={`transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-              <FaChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-200" />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Expandable Content */}
-      <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[1000px] mt-6' : 'max-h-0'}`}>
-        <div className="space-y-4">
-          {/* Overview */}
-          {episode.overview && (
-            <div className="p-4 bg-gray-700/30 rounded-lg">
-              <p className="text-gray-300 text-sm leading-relaxed">
-                {episode.overview}
+          {/* Episode Info */}
+          <div className="flex-1 min-w-0">
+            <div className="space-y-3">
+              {/* Episode Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-medium">{episode.name}</h3>
+                  <p className="text-sm text-gray-400">
+                    Episode {episode.episode_number}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 text-yellow-400">
+                    <FaStar className="w-4 h-4" />
+                    <span className="font-medium">{episode.vote_average.toFixed(1)}</span>
+                  </div>
+                  <FaChevronDown 
+                    className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                  />
+                </div>
+              </div>
+
+              {/* Air Date */}
+              <div className="flex items-center gap-2 text-gray-400">
+                <FaCalendar className="w-4 h-4" />
+                <span className="text-sm">{formatDate(episode.air_date)}</span>
+              </div>
+
+              {/* Overview - Truncated when not expanded */}
+              <p className={`text-sm text-gray-300 ${isExpanded ? '' : 'line-clamp-2'}`}>
+                {episode.overview || 'No overview available.'}
               </p>
             </div>
-          )}
 
-          {/* Download Options */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-gray-300">Download Options</h4>
-              {torrents.length > 1 && (
-                <button
-                  onClick={() => setShowTorrents(!showTorrents)}
-                  className="text-sm text-gray-400 hover:text-gray-200 transition-colors"
-                >
-                  {showTorrents ? 'Hide Options' : 'Show All Options'}
-                </button>
-              )}
-            </div>
-
-            <div className={`space-y-2 transition-all duration-300 ${showTorrents ? 'opacity-100' : 'opacity-0 max-h-0'}`}>
-              {torrents.map((torrent, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/40 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="px-2 py-1 bg-gray-800/60 rounded text-sm font-medium text-gray-300">
-                      {torrent.quality}
-                    </span>
-                    <span className="text-sm text-gray-400">{torrent.size}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="flex items-center text-sm text-green-400">
-                        <FaSeedling className="w-4 h-4 mr-1" />
-                        {torrent.seeds}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        {torrent.peers} peers
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => onDownload?.(torrent)}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors text-sm font-medium"
-                  >
-                    <FaMagnet className="w-4 h-4" />
-                    Download
-                  </button>
-                </div>
-              ))}
+            {/* Quick Actions */}
+            <div className="flex items-center gap-4 mt-4" onClick={e => e.stopPropagation()}>
+              <button
+                onClick={() => setIsVideoModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white 
+                         rounded-lg hover:bg-blue-600 transition-colors duration-200"
+              >
+                <FaPlay className="w-4 h-4" />
+                <span>Watch Now</span>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Expanded Content */}
+        {isExpanded && (
+          <div className="px-4 pb-4 border-t border-gray-700/50">
+            <div className="pt-4 space-y-4">
+              <h4 className="text-sm font-medium text-gray-300">Download Options</h4>
+              {torrents.length > 0 ? (
+                <div className="grid gap-2">
+                  {torrents.map((torrent, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg"
+                    >
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 rounded">
+                            {torrent.quality}
+                          </span>
+                          <span className="text-sm text-gray-400">{torrent.size}</span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Seeds: {torrent.seeds} | Peers: {torrent.peers}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDownload(torrent.magnetLink)}
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 
+                                   rounded transition-colors duration-200"
+                        >
+                          <FaMagnet className="w-4 h-4" />
+                          <span>Magnet</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No download options available.</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        embedUrl={getEmbedUrl()}
+      />
+    </>
   );
 };
 

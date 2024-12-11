@@ -173,11 +173,21 @@ export const TVProcess = ({ content }: TVProcessProps) => {
       {/* Episodes List */}
       {selectedSeason && episodes && (
         <EpisodeList
+          seasons={seasons}
           episodes={episodes}
-          seasonNumber={selectedSeason}
-          imdbId={content.imdb_id}
+          selectedSeason={selectedSeason}
+          onSeasonChange={setSelectedSeason}
+          onWatch={(episode) => {
+            // Handle episode watch action
+            console.log('Watch episode:', episode);
+          }}
+          torrents={torrents}
+          imdbId={content?.imdb_id}
+          tmdbId={content?.id?.toString()}
         />
       )}
     </div>
   );
 };
+
+export default TVProcess;

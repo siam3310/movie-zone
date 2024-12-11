@@ -9,6 +9,7 @@ import {
 import { LoadingSkeleton } from "../components/info/skeleton";
 import { MovieProcess } from "../components/info/MovieProcess";
 import { TVProcess } from "../components/info/TVProcess";
+import VideoModal from '../components/common/VideoModal';
 
 function Info() {
   const { type, id } = useParams();
@@ -22,6 +23,7 @@ function Info() {
   const [itemsPerPage] = useState<number>(6);
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [selectedQuality, setSelectedQuality] = useState<string>("All");
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -72,6 +74,15 @@ function Info() {
 
     fetchContent();
   }, [id, type, navigate]);
+
+  const getVideoEmbedUrl = () => {
+    if (!content?.imdb_id) return '';
+    if (content.media_type === 'movie') {
+      return `https://vidsrc.to/embed/movie/${content.imdb_id}`;
+    } else {
+      return `https://vidsrc.to/embed/tv/${content.imdb_id}`;
+    }
+  };
 
   if (loading) {
     return <LoadingSkeleton />;
@@ -151,15 +162,13 @@ function Info() {
                   <span className="font-semibold text-lg">Watch Trailer</span>
                 </button>
               )}
-              {content?.media_type === 'movie' && (
-                <button
-                  onClick={() => window.open(`https://vidsrc.to/embed/movie/${content.imdb_id}`, '_blank')}
-                  className="flex items-center gap-2 px-8 py-3 bg-gray-500/30 hover:bg-gray-500/40 text-white rounded transition duration-300 group"
-                >
-                  <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
-                  <span className="font-semibold text-lg">Watch Movie</span>
-                </button>
-              )}
+              <button
+                onClick={() => setIsVideoModalOpen(true)}
+                className="flex items-center gap-2 px-8 py-3 bg-gray-500/30 hover:bg-gray-500/40 text-white rounded transition duration-300 group"
+              >
+                <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
+                <span className="font-semibold text-lg">Watch {content.media_type === 'movie' ? 'Movie' : 'Show'}</span>
+              </button>
               <div className="flex items-center gap-2">
                 <button
                   className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-500/30 hover:bg-gray-500/40 transition duration-300 group"
@@ -375,6 +384,13 @@ function Info() {
           </div>
         </div>
       )}
+
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        embedUrl={getVideoEmbedUrl()}
+      />
     </div>
   );
 }
