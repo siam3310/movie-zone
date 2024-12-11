@@ -7,26 +7,48 @@ export const normalizeTitle = (title: string): string => {
     .trim();
 };
 
+export const isExactMatch = (torrentTitle: string, movieTitle: string, releaseYear: string): boolean => {
+  const normalizedTorrentTitle = normalizeTitle(torrentTitle);
+  const normalizedMovieTitle = normalizeTitle(movieTitle);
+  
+  // Check if year is present in torrent title
+  const yearMatch = torrentTitle.includes(releaseYear);
+  
+  // Direct match with year
+  if (normalizedTorrentTitle === `${normalizedMovieTitle} ${releaseYear}`) {
+    return true;
+  }
+  
+  // Check if torrent title contains movie title and year
+  if (normalizedTorrentTitle.includes(normalizedMovieTitle) && yearMatch) {
+    // Ensure the title match is a complete word
+    const titleIndex = normalizedTorrentTitle.indexOf(normalizedMovieTitle);
+    const nextChar = normalizedTorrentTitle[titleIndex + normalizedMovieTitle.length];
+    
+    // Check if the next character after the title is a space, number, or end of string
+    if (!nextChar || nextChar === ' ' || /\d/.test(nextChar)) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 export const getTitleVariations = (title: string): string[] => {
   const variations = [title];
   
   // Remove common prefixes
   const withoutPrefix = title.replace(/^(the|a|an)\s+/i, '');
   if (withoutPrefix !== title) variations.push(withoutPrefix);
-
-  // Handle special cases like "Harry Potter"
-  if (title.toLowerCase().includes('harry potter')) {
-    variations.push('Harry Potter');
-    variations.push(title.replace(/Harry Potter and /i, 'Harry Potter '));
-    variations.push(title.replace(/Harry Potter and the /i, 'Harry Potter '));
-    variations.push(title.replace(/Harry Potter & /i, 'Harry Potter '));
-    variations.push(title.replace(/Harry Potter & the /i, 'Harry Potter '));
-  }
-
-  variations.push(title.split(':')[0]);
-  variations.push(title.split(' - ')[0]);
-  variations.push(title.split(' (')[0]);
-
+  
+  // Only add basic variations to reduce false matches
+  variations.push(title.split(':')[0].trim());
+  variations.push(title.split(' - ')[0].trim());
+  
+  // Remove everything in parentheses
+  const withoutParentheses = title.replace(/\s*\([^)]*\)/g, '').trim();
+  if (withoutParentheses !== title) variations.push(withoutParentheses);
+  
   return [...new Set(variations)].filter(Boolean);
 };
 

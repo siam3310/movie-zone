@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Movie } from "../../utils/requests";
 import { MovieDetails, TorrentInfo } from "../../types/torrent";
 import { TorrentList } from "../common/TorrentList";
-import { normalizeTitle, getTitleVariations, calculateTrustScore, sortTorrents } from "../../utils/torrentUtils";
+import { calculateTrustScore, sortTorrents, isExactMatch } from "../../utils/torrentUtils";
 
 interface MovieProcessProps {
   content: Movie | null;
@@ -80,94 +80,32 @@ export const MovieProcess = ({
   useEffect(() => {
     const fetchYTSMovie = async () => {
       if (!content?.title) return;
-
+      
       setIsLoading(true);
       setError(null);
-
+      
       try {
-        const imdbId = content.imdb_id || '';
-        const year = content.release_date ? new Date(content.release_date).getFullYear() : '';
+        const releaseYear = content.release_date?.split('-')[0] || '';
+        const response = await fetch(`https://yts.mx/api/v2/list_movies.json?query_term=${encodeURIComponent(content.imdb_id || content.title)}`);
+        const data = await response.json();
         
-        // Create search queries for each variation
-        const titleVariations = getTitleVariations(content.title);
-        const searchQueries = titleVariations.flatMap(title => [
-          `query_term=${encodeURIComponent(title)}`,
-          year ? `query_term=${encodeURIComponent(title)}&year=${year}` : null,
-          `query_term=${encodeURIComponent(title.split(' ').slice(0, 2).join(' '))}`
-        ]).filter(Boolean);
-
-        if (imdbId) {
-          searchQueries.unshift(`imdb_id=${imdbId}`);
-        }
-
-        let allMovies: MovieDetails[] = [];
-        let mainMovie: MovieDetails | null = null;
-
-        // Fetch from all search queries
-        for (const query of searchQueries) {
-          if (mainMovie) break;
-
-          const searchUrl = `${import.meta.env.VITE_YTS_API_URL}/list_movies.json?${query}&limit=50&sort_by=seeds`;
-          const response = await fetch(searchUrl);
-          const data = await response.json();
-
-          if (data.status === "ok" && data.data.movies) {
-            const movies = data.data.movies.filter((m: MovieDetails) => {
-              const movieNormalizedTitle = normalizeTitle(m.title);
-              const titleMatch = titleVariations.some(variation => 
-                normalizeTitle(variation) === movieNormalizedTitle ||
-                movieNormalizedTitle.includes(normalizeTitle(variation)) ||
-                normalizeTitle(variation).includes(movieNormalizedTitle)
-              );
-              const yearMatch = !year || Math.abs(m.year - year) <= 1;
-              return titleMatch && yearMatch;
-            });
-
-            if (!mainMovie) {
-              mainMovie = movies.find((m: MovieDetails) => {
-                const exactTitleMatch = titleVariations.some(variation => 
-                  normalizeTitle(variation) === normalizeTitle(m.title)
-                );
-                return exactTitleMatch && (!year || m.year === year);
-              });
-            }
-
-            movies.forEach((movie: MovieDetails) => {
-              if (!allMovies.some(m => m.id === movie.id)) {
-                allMovies.push(movie);
-              }
-            });
-          }
-        }
-
-        if (!mainMovie && allMovies.length > 0) {
-          allMovies.sort((a, b) => {
-            const aTitleMatch = titleVariations.some(v => 
-              normalizeTitle(v) === normalizeTitle(a.title)
-            );
-            const bTitleMatch = titleVariations.some(v => 
-              normalizeTitle(v) === normalizeTitle(b.title)
-            );
-            
-            if (aTitleMatch && !bTitleMatch) return -1;
-            if (!aTitleMatch && bTitleMatch) return 1;
-            
-            if (year) {
-              return Math.abs(a.year - year) - Math.abs(b.year - year);
-            }
-            return 0;
-          });
+        if (data.data.movies?.length > 0) {
+          // First try to match by IMDB ID
+          let matchedMovie = data.data.movies.find(m => m.imdb_code === content.imdb_id);
           
-          mainMovie = allMovies[0];
-        }
+          // If no IMDB match, try exact title and year match
+          if (!matchedMovie && content.title) {
+            matchedMovie = data.data.movies.find(m => 
+              isExactMatch(m.title, content.title!, releaseYear)
+            );
+          }
+          
+          if (matchedMovie) {
+            setYtsMovie(matchedMovie);
+            const allTorrents: TorrentInfo[] = [];
 
-        if (mainMovie) {
-          setYtsMovie(mainMovie);
-          const allTorrents: TorrentInfo[] = [];
-
-          for (const movie of allMovies) {
             try {
-              const detailsUrl = `${import.meta.env.VITE_YTS_API_URL}/movie_details.json?movie_id=${movie.id}&with_images=true&with_cast=true`;
+              const detailsUrl = `https://yts.mx/api/v2/movie_details.json?movie_id=${matchedMovie.id}&with_images=true&with_cast=true`;
               const detailsResponse = await fetch(detailsUrl);
               const detailsData = await detailsResponse.json();
 
@@ -189,7 +127,7 @@ export const MovieProcess = ({
                     rating: movieDetails.rating,
                     runtime: movieDetails.runtime,
                     genres: movieDetails.genres,
-                    is_main_movie: movieDetails.id === mainMovie?.id,
+                    is_main_movie: true,
                     imdb_code: movieDetails.imdb_code,
                     yt_trailer_code: movieDetails.yt_trailer_code,
                     cast: movieDetails.cast,
@@ -204,18 +142,12 @@ export const MovieProcess = ({
                 }
               }
             } catch (err) {
-              console.error(`Error fetching details for movie ${movie.id}:`, err);
+              console.error(`Error fetching details for movie ${matchedMovie.id}:`, err);
             }
-          }
 
-          const uniqueTorrents = allTorrents.filter((torrent, index, self) =>
-            index === self.findIndex(t => t.hash === torrent.hash)
-          );
-
-          setTorrents(sortTorrents(uniqueTorrents));
-
-          if (allTorrents.length === 0) {
-            setError("No download options available");
+            setTorrents(sortTorrents(allTorrents));
+          } else {
+            setError("No exact match found for this movie");
           }
         } else {
           setError("Movie not found");
