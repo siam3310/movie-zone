@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import axios from "../utils/axios";
 import Thumbnail from "./Thumbnail";
 import { Movie } from "../utils/requests";
-import { Skeleton } from '@mui/material'
+import { Skeleton } from '@mui/material';
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { useMediaQuery } from 'react-responsive';
 
 interface Props {
   title: string;
@@ -14,13 +15,27 @@ interface Props {
 function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [isMoved, setIsMoved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+
+  const handleNavigation = useCallback((direction: 'left' | 'right') => {
+    if (!rowRef.current) return;
+    
+    const scrollAmount = rowRef.current.offsetWidth;
+    const newScrollPosition = direction === 'left' 
+      ? rowRef.current.scrollLeft - scrollAmount
+      : rowRef.current.scrollLeft + scrollAmount;
+    
+    rowRef.current.scrollTo({
+      left: newScrollPosition,
+      behavior: 'smooth'
+    });
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
-      setIsLoading(true);
       try {
+        setIsLoading(true);
         const request = await axios.get(fetchUrl);
         if (request.data?.results) {
           // Determine media type based on the fetchUrl
@@ -33,8 +48,8 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
 
           const results = request.data.results.map((item: Movie) => {
             const processedItem = {
-              ...item,
-              media_type: mediaType === 'mixed' ? item.media_type || 'movie' : mediaType,
+            ...item,
+            media_type: mediaType === 'mixed' ? item.media_type || 'movie' : mediaType,
               backdrop_path: item.backdrop_path,
               poster_path: item.poster_path
             };
@@ -46,7 +61,6 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
         }
       } catch (error) {
         console.error('Error fetching row data:', error);
-        setMovies([]); // Set empty array on error
       } finally {
         setIsLoading(false);
       }
@@ -54,41 +68,17 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
     fetchData();
   }, [fetchUrl, mediaType]);
 
-  const handleClick = (direction: string) => {
-    setIsMoved(true);
-    if (rowRef.current) {
-      const { scrollLeft, clientWidth } = rowRef.current;
-      const scrollTo = direction === "left" ? scrollLeft - clientWidth : scrollLeft + clientWidth;
-      rowRef.current.scrollTo({ left: scrollTo, behavior: "smooth" });
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="space-y-0.5 md:space-y-2">
-        <Skeleton
-          variant="text"
-          width={200}
-          height={40}
-          sx={{ bgcolor: '#2b2b2b', marginBottom: '8px' }}
-        />
+      <div className="space-y-2">
+        <h2 className="w-56 ml-4 md:ml-8 lg:ml-16 text-sm font-semibold text-[#e5e5e5] md:text-2xl">
+          {title}
+        </h2>
         <div className="relative">
-          <div className="flex items-center space-x-4 overflow-x-hidden scrollbar-hide">
+          <div className="flex items-center space-x-4 overflow-x-hidden px-4 md:px-8 lg:px-16">
             {[...Array(6)].map((_, index) => (
               <div key={index} className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height="100%"
-                  sx={{
-                    bgcolor: '#2b2b2b',
-                    borderRadius: '0.125rem',
-                    transform: 'scale(1)',
-                    '&::after': {
-                      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)'
-                    }
-                  }}
-                />
+                <Skeleton variant="rectangular" width="100%" height="100%" sx={{ bgcolor: '#2b2b2b' }} />
               </div>
             ))}
           </div>
@@ -98,34 +88,43 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
   }
 
   return (
-    <div className="space-y-0.5 md:space-y-2">
-      <h2 className="w-56 ml-4 md:ml-8 lg:ml-16 cursor-pointer text-sm font-semibold text-[#e5e5e5] transition duration-200 hover:text-white md:text-2xl">
-        {title}
-      </h2>
+    <div className="mb-12">
+      <div className="flex justify-between items-center px-4 md:px-8 lg:px-16 mb-4">
+        <h2 className="text-sm font-semibold text-[#e5e5e5] transition duration-200 hover:text-white md:text-2xl">
+          {title}
+        </h2>
+        {!isMobile && (
+          <div className="flex gap-4">
+            <button
+              onClick={() => handleNavigation('left')}
+              className="p-3 rounded-full bg-black/60 hover:bg-black/80 transition-colors duration-300"
+            >
+              <ChevronLeftIcon className="h-6 w-6 text-white" />
+            </button>
+            <button
+              onClick={() => handleNavigation('right')}
+              className="p-3 rounded-full bg-black/60 hover:bg-black/80 transition-colors duration-300"
+            >
+              <ChevronRightIcon className="h-6 w-6 text-white" />
+            </button>
+          </div>
+        )}
+      </div>
 
-      <div className="group relative md:-ml-2">
-        <ChevronLeftIcon
-          className={`absolute h-full top-0 bottom-0 left-2 z-40 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100 ${!isMoved && 'hidden'
-            }`}
-          onClick={() => handleClick('left')}
-        />
-
+      <div className="relative overflow-hidden">
         <div
           ref={rowRef}
-          className="flex items-center space-x-4 overflow-x-hidden scrollbar-hide"
+          className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16"
         >
           {movies.map((movie) => (
-            <Thumbnail key={movie.id} movie={movie} />
+            <div key={movie.id} className="flex-none">
+              <Thumbnail movie={movie} />
+            </div>
           ))}
         </div>
-
-        <ChevronRightIcon
-          className="absolute h-full top-0 bottom-0 right-2 z-40 m-auto h-9 w-9 cursor-pointer opacity-0 transition hover:scale-125 group-hover:opacity-100"
-          onClick={() => handleClick('right')}
-        />
       </div>
     </div>
   );
 }
 
-export default Row;
+export default React.memo(Row);

@@ -17,31 +17,61 @@ export const requests = {
 
 export default requests;
 
+interface Cast {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+}
+
+interface Credits {
+  cast: Cast[];
+  crew: any[];
+}
+
+interface ProductionCompany {
+  id: number;
+  logo_path: string | null;
+  name: string;
+  origin_country: string;
+}
+
+interface TMDBSeason {
+  air_date: string;
+  episode_count: number;
+  id: number;
+  name: string;
+  overview: string;
+  poster_path: string | null;
+  season_number: number;
+}
+
 export interface Movie {
   adult: boolean;
-  backdrop_path: string;
-  id: number;
-  title: string;
-  original_language: string;
-  original_title: string;
-  overview: string;
-  poster_path: string;
-  media_type: string;
+  backdrop_path: string | null;
   genre_ids: number[];
+  id: number;
+  media_type?: string;
+  original_language: string;
+  original_title?: string;
+  overview: string;
   popularity: number;
+  poster_path: string | null;
   release_date: string;
-  video: boolean;
+  title: string;
+  video?: boolean;
   vote_average: number;
   vote_count: number;
   name?: string;
   first_air_date?: string;
-  cast?: any[];
-  crew?: any[];
-  production_companies: {
-    id: number;
-    name: string;
-    logo_path: string | null;
-  }[];
-  genres: { id: number; name: string }[];
-  runtime: number;
+  imdb_id?: string;
+  credits?: Credits;
+  production_companies?: ProductionCompany[];
+  genres?: { id: number; name: string }[];
+  runtime?: number;
+  status?: string;
+  tagline?: string;
+  number_of_seasons?: number;
+  number_of_episodes?: number;
+  seasons?: TMDBSeason[];
 }

@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { TMDBEpisode } from '../../utils/imdbApi';
-import { FaPlay, FaCalendar, FaStar, FaChevronDown, FaMagnet, FaInfoCircle } from 'react-icons/fa';
-import { TorrentInfo } from '../../types/torrent';
+import { TMDBEpisode } from '../../types';
+import { FaPlay, FaCalendar, FaStar, FaInfoCircle, FaMagnet } from 'react-icons/fa';
+import { TorrentInfo } from '../../types';
 import VideoModal from '../common/VideoModal';
 
 interface EpisodeItemProps {
   episode: TMDBEpisode;
   onWatch: () => void;
   torrents?: TorrentInfo[];
+  selectedQuality: string;
   imdbId?: string;
   tmdbId?: string;
 }
 
-const EpisodeItem: React.FC<EpisodeItemProps> = ({ 
-  episode, 
-  onWatch, 
+const EpisodeItem: React.FC<EpisodeItemProps> = ({
+  episode,
   torrents = [],
   imdbId,
   tmdbId
@@ -108,7 +108,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
                 {torrents.length > 0 ? (
                   <div className="grid gap-2">
                     {torrents.map((torrent, index) => (
-                      <div 
+                      <div
                         key={index}
                         className="flex items-center justify-between p-3 bg-gray-800/60 rounded-lg"
                       >

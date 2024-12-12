@@ -22,7 +22,8 @@ function Thumbnail({ movie }: Props) {
 
   return (
     <div
-      className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer transition duration-200 ease-out overflow-hidden"
+      className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
+                 transition-all duration-300 ease-in-out group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
@@ -30,40 +31,38 @@ function Thumbnail({ movie }: Props) {
       <img
         src={imageUrl}
         alt={movie.title || movie.name}
-        className={`rounded-sm object-cover md:rounded transition-transform duration-300 ${
-          isHovered ? "scale-105" : "scale-100"
-        }`}
-        style={{ width: "100%", height: "100%" }}
+        className={`rounded-sm object-cover md:rounded w-full h-full
+                   transition-all duration-300 ${isHovered ? 'scale-105 brightness-75' : ''}`}
       />
 
-      {/* Gradient and Info */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-      
-      <div className="absolute bottom-2 left-2 right-2">
-        <h2 className="text-sm font-semibold text-white md:text-base truncate">
-          {movie.title || movie.name}
-        </h2>
-        {movie.vote_average > 0 && (
-          <p className="text-xs text-green-400 font-medium">
-            {Math.round(movie.vote_average * 10)}% Match
-          </p>
-        )}
-      </div>
+      <div className={`absolute inset-0 flex flex-col justify-end p-4 
+                      transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              className="flex items-center justify-center w-10 h-10 rounded-full 
+                       bg-white/90 hover:bg-white transition group-hover:scale-110"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClick();
+              }}
+            >
+              <FaPlay className="h-5 w-5 text-black pl-0.5" />
+            </button>
+          </div>
 
-      {/* Play Button Overlay */}
-      {isHovered && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 transition duration-200">
-          <button
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 transition hover:bg-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleClick();
-            }}
-          >
-            <FaPlay className="h-5 w-5 text-black pl-0.5" />
-          </button>
+          <div>
+            <h3 className="text-sm font-semibold text-white md:text-base line-clamp-1">
+              {movie.title || movie.name}
+            </h3>
+            {movie.vote_average > 0 && (
+              <p className="text-xs text-green-400 font-medium">
+                {Math.round(movie.vote_average * 10)}% Match
+              </p>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
