@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Movie } from "../../utils/requests";
 import { MovieDetails, TorrentInfo } from "../../types/torrent";
 import { TorrentList } from "../common/TorrentList";
 import { calculateTrustScore, sortTorrents, isExactMatch } from "../../utils/torrentUtils";
+import { Movie } from "@/types/movie";
 
 interface MovieProcessProps {
   content: Movie | null;
@@ -15,7 +15,6 @@ export const MovieProcess = ({
   content,
   currentPage,
   setCurrentPage,
-  itemsPerPage,
 }: MovieProcessProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,11 +90,11 @@ export const MovieProcess = ({
         
         if (data.data.movies?.length > 0) {
           // First try to match by IMDB ID
-          let matchedMovie = data.data.movies.find(m => m.imdb_code === content.imdb_id);
+          let matchedMovie = data.data.movies.find((m: any) => m.imdb_code === content.imdb_id);
           
           // If no IMDB match, try exact title and year match
           if (!matchedMovie && content.title) {
-            matchedMovie = data.data.movies.find(m => 
+            matchedMovie = data.data.movies.find((m: any) => 
               isExactMatch(m.title, content.title!, releaseYear)
             );
           }
@@ -113,7 +112,7 @@ export const MovieProcess = ({
                 const movieDetails = detailsData.data.movie;
 
                 if (movieDetails.torrents) {
-                  const processedTorrents = movieDetails.torrents.map(torrent => ({
+                  const processedTorrents = movieDetails.torrents.map((torrent: any) => ({
                     ...torrent,
                     title: `${movieDetails.title} ${movieDetails.year ? `(${movieDetails.year})` : ''} - ${torrent.quality} ${torrent.type}`,
                     source: 'YTS',
@@ -175,7 +174,7 @@ export const MovieProcess = ({
     <TorrentList
       torrents={torrents}
       currentPage={currentPage}
-      itemsPerPage={itemsPerPage}
+      itemsPerPage={5}
       onPageChange={setCurrentPage}
       onDownload={handleTorrentDownload}
       onMagnetDownload={handleMagnetDownload}

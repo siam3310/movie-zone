@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaPlay, FaPlus, FaTimes, FaVolumeOff, FaVolumeUp } from "react-icons/fa";
 import ReactPlayer from "react-player";
 import axios from "../utils/axios";
-import { Movie } from "../utils/requests";
+import { Movie } from "../types/movie";
 import { Genre } from "../types/movie";
 import { baseUrl } from "../utils/requests";
 

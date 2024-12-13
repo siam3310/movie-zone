@@ -6,19 +6,23 @@ import Pagination from './Pagination';
 
 interface TorrentListProps {
   torrents: TorrentInfo[];
+  currentPage: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
   onDownload: (torrent: TorrentInfo) => void;
   onMagnetDownload: (torrent: TorrentInfo) => void;
 }
 
 export const TorrentList: React.FC<TorrentListProps> = ({
   torrents,
+  currentPage,
+  itemsPerPage,
+  onPageChange,
   onDownload,
   onMagnetDownload,
 }) => {
   const [sortBy, setSortBy] = useState<'seeds' | 'quality'>('seeds');
   const [qualityFilter, setQualityFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
 
   // Get unique quality values
   const qualities = ['all', ...new Set(torrents.map(t => t.quality))];
@@ -41,12 +45,12 @@ export const TorrentList: React.FC<TorrentListProps> = ({
   // Reset to first page when filter/sort changes
   const handleFilterChange = (quality: string) => {
     setQualityFilter(quality);
-    setCurrentPage(1);
+    onPageChange(1);
   };
 
   const handleSortChange = (sort: 'seeds' | 'quality') => {
     setSortBy(sort);
-    setCurrentPage(1);
+    onPageChange(1);
   };
 
   return (
@@ -132,7 +136,7 @@ export const TorrentList: React.FC<TorrentListProps> = ({
             currentPage={currentPage}
             totalItems={filteredTorrents.length}
             itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
+            onPageChange={onPageChange}
           />
         </div>
       )}

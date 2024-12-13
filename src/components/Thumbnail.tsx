@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { baseUrl } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
-import { Movie } from "../utils/requests";
+import { Movie } from "../types/movie";
 
 interface Props {
   movie: Movie;

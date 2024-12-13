@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "../utils/axios";
-import { Movie } from "../utils/requests";
+import { Movie } from "../types/movie";
 import { baseUrl } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
 import { IoMdInformationCircleOutline } from "react-icons/io";
@@ -217,14 +217,14 @@ function Banner({ fetchUrl }: Props) {
           <span className="px-2 py-0.5 border border-white/40 rounded text-sm font-medium">
             {movie.media_type === 'movie' ? 'Movie' : 'TV Series'}
           </span>
-          {movie.runtime > 0 && (
+          {movie.runtime && movie.runtime > 0 && (
             <span className="font-medium">
               {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
             </span>
           )}
         </div>
 
-        <h1 className="text-1xl text-white md:text-2xl lg:text-2xl max-w-xs text-shadow-md text-white md:max-w-lg lg:max-w-2xl opacity-80 line-clamp-5">
+        <h1 className="text-1xl md:text-2xl lg:text-2xl max-w-xs text-shadow-md text-white md:max-w-lg lg:max-w-2xl opacity-80 line-clamp-5">
           {movie.overview}
         </h1>
 

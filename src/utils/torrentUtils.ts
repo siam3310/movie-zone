@@ -1,4 +1,4 @@
-import { TorrentInfo } from "../types/torrent";
+import { TorrentInfo } from "@/types/torrent";
 
 export const normalizeTitle = (title: string): string => {
   return title.toLowerCase()

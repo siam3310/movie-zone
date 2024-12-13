@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import axios from "../utils/axios";
 import Thumbnail from "./Thumbnail";
-import { Movie } from "../utils/requests";
+import { Movie } from "../types/movie";
 import { Skeleton } from '@mui/material';
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useMediaQuery } from 'react-responsive';

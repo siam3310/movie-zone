@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Movie } from "../utils/requests";
+import { Movie } from "../types/movie";
 import {
   FaPlay,
   FaPlus,
@@ -20,7 +20,7 @@ function Info() {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(6);
+  const [itemsPerPage] = useState<number>(5);
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [selectedQuality, setSelectedQuality] = useState<string>("All");
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);

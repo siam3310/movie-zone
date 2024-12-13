@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "../utils/axios";
-import { Movie } from "../utils/requests";
 import Thumbnail from "../components/Thumbnail";
 import { Skeleton } from "@mui/material";
 import { FaStar } from "react-icons/fa";
+import { Movie } from "@/types/movie";
 
 interface TVShowDetails extends Movie {
   vote_average: number;

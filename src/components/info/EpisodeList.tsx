@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { TMDBEpisode, TorrentInfo } from '../../types';
 import EpisodeItem from './EpisodeItem';
 import Pagination from '../common/Pagination';
+import { TMDBEpisode } from '@/types/movie';
+import { TorrentInfo } from '@/types/torrent';
 
 interface EpisodeListProps {
   episodes: TMDBEpisode[];

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Movie } from '../types/movie'
-import { baseUrl } from '../constants/movie'
 import { Play, Info } from 'lucide-react'
+import { baseUrl } from '@/utils/requests'
 
 interface SearchResult extends Movie {
   media_type: 'movie' | 'tv' | string

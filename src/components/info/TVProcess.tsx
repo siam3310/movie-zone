@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Movie } from "../../utils/requests";
+import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
 import ErrorMessage from './ErrorMessage';
 import LoadingIndicator from "../common/LoadingIndicator";
 import EpisodeList from "./EpisodeList";
 import axios from 'axios';
-import { TorrentInfo, TMDBEpisode, TMDBSeason } from "../../types";
+import { TorrentInfo } from "@/types/torrent";
 
 interface TVProcessProps {
   content: Movie;

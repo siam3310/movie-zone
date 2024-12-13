@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "../utils/axios";
 import Thumbnail from "../components/Thumbnail";
-import { Movie } from "../utils/requests";
 import { Skeleton } from "@mui/material";
+import { Movie } from "@/types/movie";
 
 function New() {
   const [movies, setMovies] = useState<Movie[]>([]);

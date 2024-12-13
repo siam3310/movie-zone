@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Movie } from '../types/movie'
-import { baseUrl } from '../constants/movie'
 import { FaPlus } from "react-icons/fa";
+import { baseUrl } from '@/utils/requests';
 
 function MyList() {
   const [myList, setMyList] = useState<Movie[]>([])

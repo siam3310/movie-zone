@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from '../utils/axios'
 import Thumbnail from '../components/Thumbnail'
-import { Movie } from '../utils/requests'
+import { Movie } from '../types/movie'
 import { Skeleton } from '@mui/material'
 
 function Movies() {

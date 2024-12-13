@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { TMDBEpisode } from '../../types';
 import { FaPlay, FaCalendar, FaStar, FaInfoCircle, FaMagnet } from 'react-icons/fa';
-import { TorrentInfo } from '../../types';
 import VideoModal from '../common/VideoModal';
+import { TMDBEpisode } from '@/types/movie';
+import { TorrentInfo } from '@/types/torrent';
 
 interface EpisodeItemProps {
   episode: TMDBEpisode;
