@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import axios from "../utils/axios";
 import Thumbnail from "../components/Thumbnail";
 import { Skeleton } from "@mui/material";
-import { FaStar } from "react-icons/fa";
 import { Movie } from "@/types/movie";
 
 interface TVShowDetails extends Movie {
@@ -96,14 +95,6 @@ function TVShows() {
     fetchTVShows();
   }, []);
 
-  const formatRating = (rating: number): string => {
-    return (rating / 2).toFixed(1);
-  };
-
-  const getYearFromDate = (date: string): string => {
-    return date ? new Date(date).getFullYear().toString() : 'N/A';
-  };
-
   const ShowsGrid = ({ shows, title }: { shows: TVShowDetails[], title: string }) => (
     <div className="mb-8">
       <h2 className="mb-4 text-xl font-semibold text-white md:text-2xl">
@@ -113,26 +104,6 @@ function TVShows() {
         {shows.map((show) => (
           <div key={show.id} className="group relative">
             <Thumbnail movie={show} />
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="flex items-center space-x-2 text-sm">
-                <div className="flex items-center text-yellow-400">
-                  <FaStar className="mr-1" />
-                  <span>{formatRating(show.vote_average)}/5</span>
-                </div>
-                <span className="text-gray-400">•</span>
-                <span className="text-white">{getYearFromDate(show.first_air_date)}</span>
-              </div>
-              {show.number_of_seasons && (
-                <div className="text-gray-300 text-sm mt-1">
-                  {show.number_of_seasons} {show.number_of_seasons === 1 ? 'Season' : 'Seasons'}
-                </div>
-              )}
-              {show.status && show.status !== "Ended" && (
-                <div className="text-green-500 text-sm mt-1">
-                  {show.status}
-                </div>
-              )}
-            </div>
           </div>
         ))}
       </div>
