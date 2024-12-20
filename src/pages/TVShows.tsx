@@ -97,7 +97,7 @@ function TVShows() {
 
   const ShowsGrid = ({ shows, title }: { shows: TVShowDetails[], title: string }) => (
     <div className="mb-8">
-      <h2 className="mb-4 text-xl font-semibold text-white md:text-2xl">
+      <h2 className="mb-6 text-xl font-semibold text-white md:text-2xl lg:text-3xl">
         {title}
       </h2>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

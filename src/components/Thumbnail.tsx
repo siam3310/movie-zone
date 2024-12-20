@@ -4,12 +4,15 @@ import { baseUrl } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
 import { Movie } from "../types/movie";
 
+const FALLBACK_IMAGE = 'https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available';
+
 interface Props {
   movie: Movie;
 }
 
 function Thumbnail({ movie }: Props) {
   const [isHovered, setIsHovered] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -18,7 +21,10 @@ function Thumbnail({ movie }: Props) {
     navigate(`/info/${mediaType}/${movie.id}`);
   };
 
-  const imageUrl = `${baseUrl}${movie.poster_path || movie.backdrop_path}`;
+  const imageUrl = imgError ? FALLBACK_IMAGE : 
+    movie.poster_path || movie.backdrop_path ? 
+    `${baseUrl}${movie.poster_path || movie.backdrop_path}` : 
+    FALLBACK_IMAGE;
 
   return (
     <div
@@ -31,6 +37,7 @@ function Thumbnail({ movie }: Props) {
       <img
         src={imageUrl}
         alt={movie.title || movie.name}
+        onError={() => setImgError(true)}
         className={`rounded-sm object-cover md:rounded w-full h-full
                    transition-all duration-300 ${isHovered ? 'scale-105 brightness-75' : ''}`}
       />

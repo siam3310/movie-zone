@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Movie } from '../types/movie'
-import { FaPlus } from "react-icons/fa";
-import { baseUrl } from '@/utils/requests';
+import { FaPlay, FaPlus, FaCheck } from "react-icons/fa";
+import { useNavigate } from 'react-router-dom';
+
+const FALLBACK_IMAGE = 'https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available';
 
 function MyList() {
   const [myList, setMyList] = useState<Movie[]>([])
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = 'My List - MovieZone'
@@ -15,35 +18,34 @@ function MyList() {
     }
   }, [])
 
-  const removeFromList = (movieId: number) => {
+  const removeFromList = (e: React.MouseEvent, movieId: number) => {
+    e.stopPropagation(); // Prevent triggering the parent div's onClick
     const updatedList = myList.filter((item) => item.id !== movieId)
     setMyList(updatedList)
     localStorage.setItem('netflix-mylist', JSON.stringify(updatedList))
   }
 
+  const handleItemClick = (item: Movie) => {
+    window.scrollTo(0, 0);
+    navigate(`/info/${item.media_type}/${item.id}`);
+  };
+
   if (myList.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#141414] text-white px-4">
         <div className="max-w-md w-full text-center space-y-6 py-16">
-          {/* Empty List Icon */}
           <div className="mx-auto w-24 h-24 rounded-full bg-[#2f2f2f] flex items-center justify-center mb-8">
             <FaPlus className="w-12 h-12 text-[#686868]" />
           </div>
-
-          {/* Title */}
           <h1 className="text-3xl md:text-4xl font-bold">
             Your list is empty
           </h1>
-
-          {/* Description */}
           <p className="text-lg text-[#686868]">
             Add shows and movies that you want to watch later by clicking the + button.
           </p>
-
-          {/* Browse Button */}
           <button 
-            className="mt-8 bg-white text-black py-3 px-6 rounded-md font-semibold hover:bg-[#e6e6e6] transition duration-200"
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/')}
+            className="bg-white text-black px-8 py-3 rounded-md font-medium hover:bg-[#e6e6e6] transition duration-300"
           >
             Browse Content
           </button>
@@ -53,40 +55,61 @@ function MyList() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
-      <h1 className="text-3xl font-bold mb-8">My List</h1>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {myList.map((item) => (
-          <div key={item.id} className="relative h-48 cursor-pointer md:h-64 group">
-            <img
-              src={`${baseUrl}${item.backdrop_path || item.poster_path}`}
-              alt={item.title || item.name}
-              className="rounded-sm object-cover transition duration-200 ease-out group-hover:scale-105 h-full w-full"
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-              <h2 className="text-sm font-semibold md:text-lg">
-                {item.title || item.name}
-              </h2>
-            </div>
-            <button
-              onClick={() => removeFromList(item.id)}
-              className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
+    <div className="mt-[68px] min-h-screen bg-[#141414]">
+      <div className="px-2 py-6 md:px-3 lg:px-4">
+        <h1 className="mb-6 text-xl font-semibold text-white md:text-2xl lg:text-3xl">My List</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {myList.map((item) => {
+            const imageUrl = item.poster_path ? 
+              `https://image.tmdb.org/t/p/w500${item.poster_path}` : 
+              FALLBACK_IMAGE;
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => handleItemClick(item)}
+                className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
+                         transition-all duration-300 ease-in-out group"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clipRule="evenodd"
+                <img
+                  src={imageUrl}
+                  alt={item.title}
+                  className="rounded-sm object-cover md:rounded w-full h-full
+                           transition-all duration-300 group-hover:scale-105 group-hover:brightness-75"
                 />
-              </svg>
-            </button>
-          </div>
-        ))}
+                
+                <div className="absolute inset-0 flex flex-col justify-end p-4 
+                            transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleItemClick(item);
+                        }}
+                        className="flex items-center justify-center w-10 h-10 rounded-full 
+                                bg-white/90 hover:bg-white transition group-hover:scale-110"
+                      >
+                        <FaPlay className="text-black text-sm" />
+                      </button>
+                      <button
+                        onClick={(e) => removeFromList(e, item.id)}
+                        className="flex items-center justify-center w-10 h-10 rounded-full 
+                                bg-[#2a2a2a]/60 hover:bg-[#2a2a2a] transition group-hover:scale-110"
+                        title="Remove from My List"
+                      >
+                        <FaCheck className="text-white text-sm" />
+                      </button>
+                    </div>
+                    <h3 className="text-white font-semibold drop-shadow-lg">
+                      {item.title}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   )

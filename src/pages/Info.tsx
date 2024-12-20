@@ -24,6 +24,7 @@ function Info() {
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [selectedQuality, setSelectedQuality] = useState<string>("All");
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isInMyList, setIsInMyList] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -74,6 +75,38 @@ function Info() {
 
     fetchContent();
   }, [id, type, navigate]);
+
+  useEffect(() => {
+    if (content) {
+      const savedList = localStorage.getItem('netflix-mylist');
+      if (savedList) {
+        const list = JSON.parse(savedList);
+        setIsInMyList(list.some((item: Movie) => item.id === content.id));
+      }
+    }
+  }, [content]);
+
+  const handleMyList = () => {
+    if (!content) return;
+
+    const savedList = localStorage.getItem('netflix-mylist');
+    let myList: Movie[] = savedList ? JSON.parse(savedList) : [];
+
+    if (isInMyList) {
+      // Remove from list
+      myList = myList.filter(item => item.id !== content.id);
+      setIsInMyList(false);
+    } else {
+      // Add to list
+      myList.push({
+        ...content,
+        media_type: type // ensure media_type is stored
+      });
+      setIsInMyList(true);
+    }
+
+    localStorage.setItem('netflix-mylist', JSON.stringify(myList));
+  };
 
   const getVideoEmbedUrl = () => {
     if (!content?.imdb_id) return '';
@@ -172,9 +205,14 @@ function Info() {
               <div className="flex items-center gap-2">
                 <button
                   className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-500/30 hover:bg-gray-500/40 transition duration-300 group"
-                  title="Add to My List"
+                  title={isInMyList ? "Remove from My List" : "Add to My List"}
+                  onClick={handleMyList}
                 >
-                  <FaPlus className="text-white text-xl group-hover:scale-110 transition duration-300" />
+                  {isInMyList ? (
+                    <span className="text-white text-2xl font-bold">✓</span>
+                  ) : (
+                    <FaPlus className="text-white text-xl group-hover:scale-110 transition duration-300" />
+                  )}
                 </button>
                 <button
                   className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-500/30 hover:bg-gray-500/40 transition duration-300 group"
