@@ -20,7 +20,7 @@ function Header() {
 
   const navigation = [
     { name: 'Home', href: '/' },
-    { name: 'TV Shows', href: '/tv-shows' },
+    { name: 'TV Shows', href: '/tv' },
     { name: 'Movies', href: '/movies' },
     { name: 'New & Popular', href: '/new' },
     { name: 'My List', href: '/my-list' }

@@ -9,21 +9,20 @@ import {
 import { LoadingSkeleton } from "../components/info/skeleton";
 import { MovieProcess } from "../components/info/MovieProcess";
 import { TVProcess } from "../components/info/TVProcess";
-import VideoModal from '../components/common/VideoModal';
+import { useVideoModal } from '../context/VideoModalContext';
 
 function Info() {
   const { type, id } = useParams();
   const navigate = useNavigate();
+  const { openModal } = useVideoModal();
   const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(5);
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [selectedQuality, setSelectedQuality] = useState<string>("All");
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isInMyList, setIsInMyList] = useState<boolean>(false);
 
   useEffect(() => {
@@ -117,6 +116,13 @@ function Info() {
     }
   };
 
+  const handlePlayClick = () => {
+    const embedUrl = getVideoEmbedUrl();
+    if (embedUrl) {
+      openModal(embedUrl);
+    }
+  };
+
   if (loading) {
     return <LoadingSkeleton />;
   }
@@ -188,7 +194,7 @@ function Info() {
             <div className="flex flex-wrap items-center gap-3 mb-8">
               {trailer && (
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => openModal(`https://www.youtube.com/embed/${trailer}`)}
                   className="flex items-center gap-2 px-8 py-3 bg-gray-500/30 hover:bg-gray-500/40 text-white rounded transition duration-300 group"
                 >
                   <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
@@ -196,7 +202,7 @@ function Info() {
                 </button>
               )}
               <button
-                onClick={() => setIsVideoModalOpen(true)}
+                onClick={handlePlayClick}
                 className="flex items-center gap-2 px-8 py-3 bg-gray-500/30 hover:bg-gray-500/40 text-white rounded transition duration-300 group"
               >
                 <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
@@ -402,33 +408,6 @@ function Info() {
           </div>
         </div>
       </div>
-
-      {/* Trailer Modal */}
-      {isModalOpen && trailer && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
-          <div className="relative w-[90%] max-w-5xl aspect-video bg-black">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 text-lg"
-            >
-              Close
-            </button>
-            <iframe
-              className="w-full h-full"
-              src={`https://www.youtube.com/embed/${trailer}`}
-              title="Trailer"
-              allowFullScreen
-            ></iframe>
-          </div>
-        </div>
-      )}
-
-      {/* Video Modal */}
-      <VideoModal
-        isOpen={isVideoModalOpen}
-        onClose={() => setIsVideoModalOpen(false)}
-        embedUrl={getVideoEmbedUrl()}
-      />
     </div>
   );
 }
