@@ -13,6 +13,7 @@ interface Props {
 function Thumbnail({ movie }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -33,14 +34,29 @@ function Thumbnail({ movie }: Props) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
+      style={{ willChange: 'transform' }}
     >
       <img
         src={imageUrl}
         alt={movie.title || movie.name}
+        loading="lazy"
+        decoding="async"
+        fetchpriority="high"
         onError={() => setImgError(true)}
+        onLoad={() => setIsLoaded(true)}
         className={`rounded-sm object-cover md:rounded w-full h-full
-                   transition-all duration-300 ${isHovered ? 'scale-105 brightness-75' : ''}`}
+                   transition-all duration-300 ${isHovered ? 'scale-105 brightness-75' : ''}
+                   ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        style={{
+          willChange: 'transform',
+          transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+          backfaceVisibility: 'hidden',
+        }}
       />
+
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
+      )}
 
       <div className={`absolute inset-0 flex flex-col justify-end p-4 
                       transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
