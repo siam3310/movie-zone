@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, Suspense } from 'react';
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
   const [lastMousePos, setLastMousePos] = useState<Position>({ x: 0, y: 0 });
   const [lastUpdateTime, setLastUpdateTime] = useState(0);
   const [smoothPosition, setSmoothPosition] = useState<Position>({ x: 0, y: 0 });
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number }>({
@@ -29,6 +30,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
     initialY: 0
   });
   const smoothingFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number>();
   const [bounds, setBounds] = useState({ left: 0, top: 0, right: 0, bottom: 0 });
 
   // Constants
@@ -36,8 +38,8 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
   const EDGE_SNAP_THRESHOLD = 30;
   const EDGE_PADDING = 24;
   const SMOOTHING_FACTOR = 0.15;
-  const ANIMATION_DURATION = 600; // Longer duration for smoother feel
-  const springTransition = `all ${ANIMATION_DURATION}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+  const ANIMATION_DURATION = 300; // Reduced for better performance
+  const springTransition = `transform ${ANIMATION_DURATION}ms cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity ${ANIMATION_DURATION}ms ease`;
 
   useEffect(() => {
     const updateBounds = () => {
@@ -66,44 +68,32 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
   useEffect(() => {
     if (!isMinimized) {
       setIsAnimating(true);
-
-      // Start with slight scale down
+      
       requestAnimationFrame(() => {
         setPosition({ x: 0, y: 0 });
         setVelocity({ x: 0, y: 0 });
+        setSmoothPosition({ x: 0, y: 0 });
       });
 
-      // Smooth transition to center
-      const timeout = setTimeout(() => {
-        setSmoothPosition({ x: 0, y: 0 });
-      }, 16);
-
-      // Reset animation state
       const animTimeout = setTimeout(() => {
         setIsAnimating(false);
       }, ANIMATION_DURATION);
 
-      return () => {
-        clearTimeout(timeout);
-        clearTimeout(animTimeout);
-      };
+      return () => clearTimeout(animTimeout);
     } else {
       setIsAnimating(true);
 
-      // Calculate target position
-      const x = window.innerWidth - 320 - EDGE_PADDING * 2;
-      const y = window.innerHeight - 192 - EDGE_PADDING * 2;
+      // Calculate target position - centered horizontally, bottom of screen
+      const x = (window.innerWidth - 349); // Center horizontally
+      const y = window.innerHeight - 192 - EDGE_PADDING; // Bottom position
 
-      // Start animation sequence
       requestAnimationFrame(() => {
         setPosition({ x, y });
-        // Slight delay for smooth start
         setTimeout(() => {
           setSmoothPosition({ x, y });
         }, 16);
       });
 
-      // Reset animation state
       const timeout = setTimeout(() => {
         setIsAnimating(false);
       }, ANIMATION_DURATION);
@@ -113,18 +103,24 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
   }, [isMinimized]);
 
   const smoothPositionUpdate = useCallback(() => {
+    if (!isDragging) return;
+
     setSmoothPosition(prev => ({
       x: prev.x + (position.x - prev.x) * SMOOTHING_FACTOR,
       y: prev.y + (position.y - prev.y) * SMOOTHING_FACTOR
     }));
-    smoothingFrameRef.current = requestAnimationFrame(smoothPositionUpdate);
-  }, [position]);
+
+    animationFrameRef.current = requestAnimationFrame(smoothPositionUpdate);
+  }, [position, isDragging]);
 
   useEffect(() => {
     smoothPositionUpdate();
     return () => {
       if (smoothingFrameRef.current) {
         cancelAnimationFrame(smoothingFrameRef.current);
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, [smoothPositionUpdate]);
@@ -232,6 +228,10 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
     window.open(embedUrl, '_blank');
     onClose();
   };
+  const handleIframeLoad = useCallback(() => {
+    setIframeLoaded(true);
+    setIsAnimating(false);
+  }, []);
   if (!isOpen) return null;
 
   return (
@@ -240,11 +240,11 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
       className={`fixed z-50 ${isMinimized ? 'w-80 h-48' : 'w-[90vw] h-[80vh] max-w-6xl max-h-[800px]'}`}
       style={{
         ...(!isDragging && {
-          transition: springTransition,
+          transition: `${springTransition}, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)`,
         }),
         transform: isMinimized
-          ? `translate3d(${smoothPosition.x}px, ${smoothPosition.y}px, 0) ${isAnimating ? 'scale(0.98)' : 'scale(1)'}`
-          : `translate3d(-50%, -50%, 0) ${isAnimating ? 'scale(0.98)' : 'scale(1)'}`,
+          ? `translate3d(${smoothPosition.x}px, ${smoothPosition.y}px, 0) scale3d(${isAnimating ? '0.96' : '1'}, ${isAnimating ? '0.96' : '1'}, 1)`
+          : `translate3d(-50%, -50%, 0) scale3d(${isAnimating ? '0.96' : '1'}, ${isAnimating ? '0.96' : '1'}, 1)`,
         position: 'fixed',
         ...(isMinimized ? {
           right: 'auto',
@@ -255,43 +255,61 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
           left: '50%',
           top: '50%',
         }),
-        willChange: 'transform, width, height',
+        willChange: 'transform, opacity',
         backfaceVisibility: 'hidden',
         perspective: '1000px',
-        transformStyle: 'preserve-3d'
+        transformStyle: 'preserve-3d',
+        WebkitFontSmoothing: 'antialiased',
+        filter: 'blur(0)',
       }}
     >
       <div
-        className={`relative w-full h-full bg-black rounded-lg overflow-hidden shadow-2xl
-                    ${!isMinimized ? 'border border-gray-800' : ''}`}
+        className={`relative w-full h-full bg-black rounded-lg overflow-hidden shadow-2xl transform-gpu
+                    ${!isMinimized ? 'border border-gray-800 hover:border-gray-700' : ''} 
+                    ${!iframeLoaded ? 'animate-pulse' : ''}`}
         style={{
-          transition: springTransition,
-          transform: `scale(${isAnimating ? '0.98' : '1'})`,
-          opacity: isAnimating ? 0.95 : 1,
-          willChange: 'transform, opacity',
+          transition: `${springTransition}, transform 0.2s ease-out, box-shadow 0.3s ease-in-out`,
+          transform: `translateZ(0) scale(${isAnimating ? '0.98' : '1'})`,
+          opacity: iframeLoaded ? 1 : 0.7,
+          willChange: 'transform, opacity, box-shadow',
+          boxShadow: isMinimized 
+            ? '0 10px 30px -5px rgba(0, 0, 0, 0.3)' 
+            : '0 20px 40px -5px rgba(0, 0, 0, 0.5)',
         }}
       >
-        <iframe
-          src={embedUrl}
-          className="w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
+        <Suspense fallback={
+          <div className="w-full h-full bg-gray-900 animate-pulse" />
+        }>
+          <iframe
+            src={embedUrl}
+            className={`w-full h-full transition-opacity duration-300 ${iframeLoaded ? 'opacity-100' : 'opacity-0'}`}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+            onLoad={handleIframeLoad}
+            style={{
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden',
+            }}
+          />
+        </Suspense>
 
         {/* Control Bar */}
         <div
           className={`control-bar absolute top-0 left-0 right-0 z-10 flex items-center justify-end gap-2 
-                    p-2 bg-gradient-to-b from-black/80 to-transparent ${isMinimized ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                    p-2 bg-gradient-to-b from-black/80 to-transparent transform-gpu backdrop-blur-[2px]
+                    ${isMinimized ? 'cursor-grab active:cursor-grabbing' : ''}`}
           style={{
-            transition: springTransition,
+            transition: `${springTransition}, opacity 0.3s ease-in-out, backdrop-filter 0.3s ease`,
             opacity: isAnimating ? 0.9 : 1,
-            transform: `translateZ(0)`,
+            transform: 'translate3d(0,0,0)',
+            WebkitBackfaceVisibility: 'hidden',
           }}
           onMouseDown={handleMouseDown}
         >
           <button
             onClick={openNewTab}
-            className="p-1 hover:bg-white/20 rounded"
+            className="p-1 hover:bg-white/20 rounded transition-all duration-200 ease-out hover:scale-105"
           >
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -300,7 +318,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1 hover:bg-white/20 rounded"
+              className="p-1 hover:bg-white/20 rounded transition-all duration-200 ease-out hover:scale-105"
             >
               {isMinimized ? (
                 <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -315,7 +333,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-white/20 rounded"
+            className="p-1 hover:bg-white/20 rounded transition-all duration-200 ease-out hover:scale-105"
           >
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -327,4 +345,5 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
   );
 };
 
-export default VideoModal;
+// Memoize the component for better performance
+export default React.memo(VideoModal);
