@@ -41,7 +41,6 @@ function Thumbnail({ movie }: Props) {
         alt={movie.title || movie.name}
         loading="lazy"
         decoding="async"
-        fetchpriority="high"
         onError={() => setImgError(true)}
         onLoad={() => setIsLoaded(true)}
         className={`rounded-sm object-cover md:rounded w-full h-full
