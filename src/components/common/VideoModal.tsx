@@ -7,90 +7,173 @@ interface VideoModalProps {
 }
 
 interface Position { x: number; y: number; }
+interface DragPosition {
+  right: number;
+  bottom: number;
+}
 
 const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) => {
   const [state, setState] = useState({
     isMinimized: false,
     isDragging: false,
-    isAnimating: false,
     iframeLoaded: false,
-    position: { x: 0, y: 0 } as Position,
-    smoothPosition: { x: 0, y: 0 } as Position
+    position: { right: 24, bottom: 24 } as DragPosition
   });
 
   const modalRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const dragRef = useRef({
+    startX: 0,
+    startY: 0,
+    startRight: 0,
+    startBottom: 0
+  });
 
   const EDGE_PADDING = 24;
-  const ANIMATION_DURATION = 300;
-  const springTransition = `transform ${ANIMATION_DURATION}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)`;
 
-  // Handle minimize/maximize transitions
-  useEffect(() => {
-    if (!state.isMinimized) {
-      setState(s => ({ ...s, position: { x: 0, y: 0 }, smoothPosition: { x: 0, y: 0 }, isAnimating: true }));
-    } else {
-      const x = window.innerWidth - 349;
-      const y = window.innerHeight - 192 - EDGE_PADDING;
-      setState(s => ({ ...s, position: { x, y }, smoothPosition: { x, y }, isAnimating: true }));
-    }
+  // Add constants for mobile sizes
+  const MOBILE_WIDTH = 320;
+  const MOBILE_HEIGHT = 180;
+  const DESKTOP_MIN_PADDING = 24;
+  const MOBILE_MIN_PADDING = 12;
 
-    const timer = setTimeout(() => {
-      setState(s => ({ ...s, isAnimating: false }));
-    }, ANIMATION_DURATION);
+  // Get dynamic padding based on screen size
+  const getPadding = useCallback(() => {
+    return window.innerWidth < 640 ? MOBILE_MIN_PADDING : DESKTOP_MIN_PADDING;
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [state.isMinimized]);
+  const handleMinimize = useCallback(() => {
+    setState(s => ({ 
+      ...s, 
+      isMinimized: !s.isMinimized,
+      position: !s.isMinimized ? { right: EDGE_PADDING, bottom: EDGE_PADDING } : s.position
+    }));
+  }, []);
 
-  // Drag handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!state.isMinimized) return;
     e.preventDefault();
-
+    
     const rect = modalRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      posX: rect.left,
-      posY: rect.top
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startRight: window.innerWidth - rect.right,
+      startBottom: window.innerHeight - rect.bottom
     };
 
     setState(s => ({ ...s, isDragging: true }));
     document.body.style.cursor = 'grabbing';
   }, [state.isMinimized]);
 
+  // Add function to handle scroll lock
+  const preventScroll = useCallback((e: TouchEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!state.isMinimized) return;
+    
+    // Prevent all touch events while dragging
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    
+    const rect = modalRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const touch = e.touches[0];
+    dragRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startRight: window.innerWidth - rect.right,
+      startBottom: window.innerHeight - rect.bottom
+    };
+
+    setState(s => ({ ...s, isDragging: true }));
+  }, [state.isMinimized, preventScroll]);
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!state.isDragging) return;
 
-    const dx = e.clientX - dragStartRef.current.x;
-    const dy = e.clientY - dragStartRef.current.y;
+    // Calculate the difference from start position
+    const deltaX = e.clientX - dragRef.current.startX;
+    const deltaY = e.clientY - dragRef.current.startY;
     
-    const maxX = window.innerWidth - 320 - EDGE_PADDING;
-    const maxY = window.innerHeight - 192 - EDGE_PADDING;
+    // Calculate new positions (moving in opposite direction of mouse movement)
+    const newRight = Math.max(EDGE_PADDING, 
+      Math.min(
+        window.innerWidth - 320 - EDGE_PADDING,
+        dragRef.current.startRight - deltaX
+      )
+    );
     
-    const x = Math.min(Math.max(dragStartRef.current.posX + dx, EDGE_PADDING), maxX);
-    const y = Math.min(Math.max(dragStartRef.current.posY + dy, EDGE_PADDING), maxY);
+    const newBottom = Math.max(EDGE_PADDING,
+      Math.min(
+        window.innerHeight - 192 - EDGE_PADDING,
+        dragRef.current.startBottom - deltaY
+      )
+    );
 
-    setState(s => ({ ...s, position: { x, y }, smoothPosition: { x, y } }));
+    setState(s => ({
+      ...s,
+      position: { right: newRight, bottom: newBottom }
+    }));
   }, [state.isDragging]);
+
+  // Update the touch move handler
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!state.isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - dragRef.current.startX;
+    const deltaY = touch.clientY - dragRef.current.startY;
+    
+    const padding = getPadding();
+    const maxRight = window.innerWidth - MOBILE_WIDTH - padding;
+    const maxBottom = window.innerHeight - MOBILE_HEIGHT - padding;
+    
+    const newRight = Math.max(padding,
+      Math.min(maxRight, dragRef.current.startRight - deltaX)
+    );
+    
+    const newBottom = Math.max(padding,
+      Math.min(maxBottom, dragRef.current.startBottom - deltaY)
+    );
+
+    setState(s => ({
+      ...s,
+      position: { right: newRight, bottom: newBottom }
+    }));
+  }, [state.isDragging, getPadding]);
 
   const handleMouseUp = useCallback(() => {
     setState(s => ({ ...s, isDragging: false }));
     document.body.style.cursor = '';
-  }, []);
+    document.body.style.overflow = '';
+    document.removeEventListener('touchmove', preventScroll);
+  }, [preventScroll]);
+
+  const handleTouchEnd = handleMouseUp;
 
   useEffect(() => {
     if (state.isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleTouchEnd);
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        document.body.style.overflow = '';
+        document.removeEventListener('touchmove', preventScroll);
       };
     }
-  }, [state.isDragging, handleMouseMove, handleMouseUp]);
+  }, [state.isDragging, handleMouseMove, handleMouseUp, handleTouchMove, preventScroll]);
 
   const openNewTab = () => {
     window.open(embedUrl, '_blank');
@@ -102,18 +185,35 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
   return (
     <div
       ref={modalRef}
-      className={`fixed z-50 ${state.isMinimized ? 'w-80 h-48' : 'w-[90vw] h-[80vh] max-w-6xl max-h-[800px]'}`}
+      className={`fixed z-50 ${
+        state.isMinimized 
+          ? 'w-80 h-[180px] sm:h-48' 
+          : 'w-[95vw] sm:w-[90vw] h-[60vh] sm:h-[80vh] max-w-6xl max-h-[800px]'
+      }`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={(e) => e.preventDefault()}
       style={{
-        transition: !state.isDragging ? springTransition : undefined,
-        transform: state.isMinimized
-          ? `translate3d(${state.smoothPosition.x}px, ${state.smoothPosition.y}px, 0)`
-          : `translate3d(-50%, -50%, 0)`,
         position: 'fixed',
-        ...(state.isMinimized ? { left: 0, top: 0 } : { left: '50%', top: '50%' })
+        touchAction: state.isMinimized ? 'none' : undefined,
+        ...(state.isMinimized 
+          ? {
+              right: `${state.position.right}px`,
+              bottom: `${state.position.bottom}px`,
+            }
+          : {
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)'
+            }
+        )
       }}
     >
-      <div className={`relative w-full h-full bg-black rounded-lg overflow-hidden shadow-2xl
-        ${!state.isMinimized ? 'border border-gray-800 hover:border-gray-700' : ''}`}>
+      <div 
+        className={`relative w-full h-full bg-black rounded-lg overflow-hidden shadow-lg
+          ${!state.isMinimized ? 'border border-gray-800' : ''}`}
+        onTouchStart={handleTouchStart}
+        onMouseDown={handleMouseDown}
+      >
         <Suspense fallback={<div className="w-full h-full bg-gray-900 animate-pulse" />}>
           <iframe
             src={embedUrl}
@@ -129,7 +229,6 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
           className={`absolute top-0 left-0 right-0 z-10 flex items-center justify-end gap-2 
             p-2 bg-gradient-to-b from-black/80 to-transparent
             ${state.isMinimized ? 'cursor-grab active:cursor-grabbing' : ''}`}
-          onMouseDown={handleMouseDown}
         >
           <button onClick={openNewTab} className="p-1 hover:bg-white/20 rounded">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,7 +236,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
             </svg>
           </button>
           <button
-            onClick={() => setState(s => ({ ...s, isMinimized: !s.isMinimized }))}
+            onClick={handleMinimize}
             className="p-1 hover:bg-white/20 rounded"
           >
             {state.isMinimized ? (
