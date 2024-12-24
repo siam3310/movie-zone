@@ -57,7 +57,7 @@ function New() {
           />
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {[...Array(15)].map((_, index) => (
-              <div key={index} className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
+              <div key={index} className="relative h-[345px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
                 <Skeleton
                   variant="rectangular"
                   aria-label="Loading movie thumbnail"

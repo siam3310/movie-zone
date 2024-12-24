@@ -64,17 +64,18 @@ function Search() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 mt-16">
+    <div className="mt-[68px] min-h-screen bg-[#141414] px-2 py-6 md:px-3 lg:px-4">
       <h1 className="text-3xl font-bold mb-4 text-white">
         {results.length > 0
           ? `Search results for "${query}"`
           : `No results found for "${query}"`}
       </h1>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {results.map((result) => (
           <div
             key={result.id}
-            className="group relative h-48 cursor-pointer md:h-64 hover:z-20"
+            className="relative h-[345px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
+                 transition-all duration-300 ease-in-out group"
             onClick={() => handleNavigateToInfo(result)}
           >
             <img

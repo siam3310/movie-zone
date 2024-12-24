@@ -6,7 +6,6 @@ interface VideoModalProps {
   embedUrl: string;
 }
 
-interface Position { x: number; y: number; }
 interface DragPosition {
   right: number;
   bottom: number;
