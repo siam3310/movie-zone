@@ -120,9 +120,9 @@ function TVShows() {
             height={40}
             sx={{ bgcolor: '#2b2b2b', marginBottom: '24px' }}
           />
-          <div className="grid grid-cPols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {[...Array(15)].map((_, index) => (
-              <div key={index} className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
+              <div key={index} className="relative h-[280px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
                 <Skeleton
                   variant="rectangular"
                   width="100%"

@@ -68,7 +68,7 @@ function MyList() {
               <div
                 key={item.id}
                 onClick={() => handleItemClick(item)}
-                className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
+                className="relative min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
                          transition-all duration-300 ease-in-out group"
               >
                 <img

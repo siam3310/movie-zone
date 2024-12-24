@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import axios from "../utils/axios";
 import Thumbnail from "./Thumbnail";
 import { Movie } from "../types/movie";
-import { Skeleton } from '@mui/material';
+import { Skeleton } from "@mui/material";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { useMediaQuery } from 'react-responsive';
+import { useMediaQuery } from "react-responsive";
 
 interface Props {
   title: string;
@@ -12,23 +12,24 @@ interface Props {
   mediaType?: string;
 }
 
-function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
+function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const isMobile = useMediaQuery({ maxWidth: 768 });
 
-  const handleNavigation = useCallback((direction: 'left' | 'right') => {
+  const handleNavigation = useCallback((direction: "left" | "right") => {
     if (!rowRef.current) return;
-    
+
     const scrollAmount = rowRef.current.offsetWidth;
-    const newScrollPosition = direction === 'left' 
-      ? rowRef.current.scrollLeft - scrollAmount
-      : rowRef.current.scrollLeft + scrollAmount;
-    
+    const newScrollPosition =
+      direction === "left"
+        ? rowRef.current.scrollLeft - scrollAmount
+        : rowRef.current.scrollLeft + scrollAmount;
+
     rowRef.current.scrollTo({
       left: newScrollPosition,
-      behavior: 'smooth'
+      behavior: "smooth",
     });
   }, []);
 
@@ -39,19 +40,23 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
         const request = await axios.get(fetchUrl);
         if (request.data?.results) {
           // Determine media type based on the fetchUrl
-          let mediaType = 'movie';
-          if (fetchUrl.includes('/tv/') || fetchUrl.includes('with_networks=213')) {
-            mediaType = 'tv';
-          } else if (fetchUrl.includes('/trending/all/')) {
-            mediaType = 'mixed'; // Will use item's own media_type
+          let mediaType = "movie";
+          if (
+            fetchUrl.includes("/tv/") ||
+            fetchUrl.includes("with_networks=213")
+          ) {
+            mediaType = "tv";
+          } else if (fetchUrl.includes("/trending/all/")) {
+            mediaType = "mixed"; // Will use item's own media_type
           }
 
           const results = request.data.results.map((item: Movie) => {
             const processedItem = {
-            ...item,
-            media_type: mediaType === 'mixed' ? item.media_type || 'movie' : mediaType,
+              ...item,
+              media_type:
+                mediaType === "mixed" ? item.media_type || "movie" : mediaType,
               backdrop_path: item.backdrop_path,
-              poster_path: item.poster_path
+              poster_path: item.poster_path,
             };
             // console.log('Processed item:', processedItem);
             return processedItem;
@@ -60,7 +65,7 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
           setMovies(results);
         }
       } catch (error) {
-        console.error('Error fetching row data:', error);
+        console.error("Error fetching row data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -77,8 +82,16 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
         <div className="relative">
           <div className="flex items-center space-x-4 overflow-x-hidden px-4 md:px-8 lg:px-16">
             {[...Array(6)].map((_, index) => (
-              <div key={index} className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
-                <Skeleton variant="rectangular" width="100%" height="100%" sx={{ bgcolor: '#2b2b2b' }} />
+              <div
+                key={index}
+                className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px]"
+              >
+                <Skeleton
+                  variant="rectangular"
+                  width="100%"
+                  height="100%"
+                  sx={{ bgcolor: "#2b2b2b" }}
+                />
               </div>
             ))}
           </div>
@@ -96,13 +109,13 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
         {!isMobile && (
           <div className="flex gap-4">
             <button
-              onClick={() => handleNavigation('left')}
+              onClick={() => handleNavigation("left")}
               className="p-3 rounded-full bg-black/60 hover:bg-black/80 transition-colors duration-300"
             >
               <ChevronLeftIcon className="h-6 w-6 text-white" />
             </button>
             <button
-              onClick={() => handleNavigation('right')}
+              onClick={() => handleNavigation("right")}
               className="p-3 rounded-full bg-black/60 hover:bg-black/80 transition-colors duration-300"
             >
               <ChevronRightIcon className="h-6 w-6 text-white" />
@@ -117,9 +130,7 @@ function Row({ title, fetchUrl, mediaType = 'movie' }: Props) {
           className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16"
         >
           {movies.map((movie) => (
-            <div key={movie.id} className="flex-none">
-              <Thumbnail movie={movie} />
-            </div>
+            <Thumbnail key={movie.id} movie={movie} />
           ))}
         </div>
       </div>

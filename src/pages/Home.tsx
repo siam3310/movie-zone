@@ -5,7 +5,7 @@ import requests from "../utils/requests";
 
 const Home = () => {
   return (
-    <div className="relative h-screen bg-gradient-to-b from-gray-900/10 to-[#010511]">
+    <div className="relative h-screen">
       {/* Banner Section */}
       <Banner fetchUrl={requests.fetchNetflixOriginals} />
 
