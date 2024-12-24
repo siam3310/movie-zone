@@ -58,7 +58,7 @@ function MyList() {
     <div className="mt-[68px] min-h-screen bg-[#141414]">
       <div className="px-2 py-6 md:px-3 lg:px-4">
         <h1 className="mb-6 text-xl font-semibold text-white md:text-2xl lg:text-3xl">My List</h1>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {myList.map((item) => {
             const imageUrl = item.poster_path ? 
               `https://image.tmdb.org/t/p/w500${item.poster_path}` : 
@@ -68,7 +68,7 @@ function MyList() {
               <div
                 key={item.id}
                 onClick={() => handleItemClick(item)}
-                className="relative h-[345px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
+                className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
                          transition-all duration-300 ease-in-out group"
               >
                 <img

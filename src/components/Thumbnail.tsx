@@ -29,7 +29,7 @@ function Thumbnail({ movie }: Props) {
 
   return (
     <div
-      className="relative h-[345px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
+      className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
                  transition-all duration-300 ease-in-out group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
