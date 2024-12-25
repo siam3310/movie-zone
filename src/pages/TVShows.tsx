@@ -14,6 +14,13 @@ interface TVShowDetails extends Movie {
   networks?: Array<{ name: string }>;
 }
 
+interface FilterOptions {
+  genre: string;
+  year: string;
+  sort: string;
+  tag?: string;
+}
+
 function TVShows() {
   const [popularShows, setPopularShows] = useState<TVShowDetails[]>([]);
   const [trendingShows, setTrendingShows] = useState<TVShowDetails[]>([]);
@@ -21,6 +28,13 @@ function TVShows() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [filteredShows, setFilteredShows] = useState<TVShowDetails[]>([]);
+  const [activeFilters, setActiveFilters] = useState<FilterOptions>({
+    genre: "",
+    year: "",
+    sort: "popularity.desc",
+    tag: "",
+  });
 
   useEffect(() => {
     document.title = "TV Shows - MovieZone";
@@ -106,6 +120,100 @@ function TVShows() {
     fetchTVShows();
   }, []);
 
+  const filterShows = (shows: TVShowDetails[], filters: FilterOptions) => {
+    return shows.filter(show => {
+      // Genre filter
+      if (filters.genre && !show.genre_ids?.includes(getGenreId(filters.genre))) {
+        return false;
+      }
+
+      // Year filter
+      if (filters.year && filters.year !== "") {
+        const showYear = new Date(show.release_date).getFullYear();
+        const filterYear = parseInt(filters.year);
+        if (showYear !== filterYear) {
+          return false;
+        }
+      }
+
+      // Tag filter
+      if (filters.tag) {
+        switch (filters.tag) {
+          case "New Releases":
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            return new Date(show.release_date) >= threeMonthsAgo;
+          
+          case "Trending Now":
+            return trendingShows.some(trending => trending.id === show.id);
+          
+          case "Popular Series":
+            return popularShows.some(popular => popular.id === show.id);
+          
+          case "Netflix Originals":
+            return show.networks?.some(network => network.name === "Netflix");
+          
+          case "Action Movies":
+            return show.genre_ids?.includes(28); // 28 is the ID for Action
+          
+          case "Award Winners":
+            return show.vote_average >= 8.0; // Consider shows with high ratings as award winners
+          
+          default:
+            return true;
+        }
+      }
+
+      return true;
+    });
+  };
+
+  const sortShows = (shows: TVShowDetails[], sortBy: string) => {
+    return [...shows].sort((a, b) => {
+      switch (sortBy) {
+        case "popularity.desc":
+          return (b.popularity || 0) - (a.popularity || 0);
+        case "vote_average.desc":
+          const aVote = a.vote_average || 0;
+          const bVote = b.vote_average || 0;
+          return bVote - aVote;
+        case "release_date.desc":
+          return new Date(b.release_date).getTime() - new Date(a.release_date).getTime();
+        case "release_date.asc":
+          return new Date(a.release_date).getTime() - new Date(b.release_date).getTime();
+        default:
+          return 0;
+      }
+    });
+  };
+
+  // Helper function to convert genre name to ID (you'll need to add actual genre IDs)
+  const getGenreId = (genreName: string): number => {
+    const genreMap: { [key: string]: number } = {
+      action: 28,
+      comedy: 35,
+      drama: 18,
+      horror: 27,
+      // Add more genres and their IDs
+    };
+    return genreMap[genreName.toLowerCase()] || 0;
+  };
+
+  const handleFilterChange = (filters: FilterOptions) => {
+    setActiveFilters(filters);
+    
+    // Get all unique shows
+    let shows = getAllShows();
+    
+    // Apply filters
+    shows = filterShows(shows, filters);
+    
+    // Apply sorting
+    shows = sortShows(shows, filters.sort);
+    
+    setFilteredShows(shows);
+  };
+
   const ShowsGrid = ({ shows, title }: { shows: TVShowDetails[], title: string }) => (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
@@ -177,11 +285,6 @@ function TVShows() {
     );
   }
 
-  const handleFilterChange = (filters: any) => {
-    // Handle filter changes here
-    console.log('Filters changed:', filters);
-  };
-
   const getAllShows = () => {
     // Combine and remove duplicates using Set and id comparison
     const combinedShows = [...new Map(
@@ -209,7 +312,10 @@ function TVShows() {
               <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
             </div>
 
-            <ShowsGrid shows={getAllShows()} title="All TV Shows" />
+            <ShowsGrid 
+              shows={filteredShows.length > 0 ? filteredShows : getAllShows()} 
+              title="All TV Shows" 
+            />
           </div>
         </div>
       </div>
