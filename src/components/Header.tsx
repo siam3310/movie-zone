@@ -22,7 +22,7 @@ function Header() {
     { name: 'Home', href: '/' },
     { name: 'TV Shows', href: '/tv' },
     { name: 'Movies', href: '/movies' },
-    { name: 'New & Popular', href: '/new' },
+    // { name: 'New & Popular', href: '/new' },
     { name: 'My List', href: '/my-list' }
   ]
 
