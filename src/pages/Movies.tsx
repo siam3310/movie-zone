@@ -5,6 +5,8 @@ import { Movie } from '../types/movie'
 import { Skeleton } from '@mui/material'
 import ViewMode from '../components/common/ViewMode'
 import Filter from '../components/common/Filter'
+import Pagination from '../components/common/Pagination'
+import { FiFilter } from "react-icons/fi";
 
 interface FilterOptions {
   genre: string;
@@ -15,141 +17,125 @@ interface FilterOptions {
 
 function Movies() {
   const [movies, setMovies] = useState<Movie[]>([])
-  const [trendingMovies, setTrendingMovies] = useState<Movie[]>([])
-  const [popularMovies, setPopularMovies] = useState<Movie[]>([])
-  const [filteredMovies, setFilteredMovies] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalResults, setTotalResults] = useState(0)
   const [activeFilters, setActiveFilters] = useState<FilterOptions>({
     genre: "",
     year: "",
     sort: "popularity.desc",
     tag: "",
   });
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
     document.title = 'Movies - MovieZone'
 
     async function fetchMovies() {
       try {
-        const [trendingRes, popularRes, actionRes, comedyRes, horrorRes, romanceRes] = await Promise.all([
-          axios.get('/trending/movie/day'),
-          axios.get('/movie/popular'),
-          axios.get('/discover/movie', {
-            params: {
-              with_genres: '28',
-              sort_by: 'popularity.desc'
-            }
-          }),
-          axios.get('/discover/movie', {
-            params: {
-              with_genres: '35',
-              sort_by: 'popularity.desc'
-            }
-          }),
-          axios.get('/discover/movie', {
-            params: {
-              with_genres: '27',
-              sort_by: 'popularity.desc'
-            }
-          }),
-          axios.get('/discover/movie', {
-            params: {
-              with_genres: '10749',
-              sort_by: 'popularity.desc'
-            }
-          })
-        ])
+        setLoading(true);
+        let endpoint = '/discover/movie';
+        
+        // Ensure page number is within valid range (TMDB typically limits to 500 pages)
+        const safeCurrentPage = Math.min(currentPage, 500);
+        
+        let params: any = {
+          page: safeCurrentPage,
+          include_adult: false,
+        };
 
-        const processMovies = (movies: any[]) => movies
+        // Handle sorting
+        switch (activeFilters.sort) {
+          case "vote_average.desc":
+            params.sort_by = "vote_average.desc";
+            params['vote_count.gte'] = 200;
+            break;
+          case "release_date.desc":
+          case "release_date.asc":
+            params.sort_by = activeFilters.sort;
+            break;
+          case "popularity.desc":
+            params.sort_by = "popularity.desc";
+            break;
+        }
+
+        // Handle genre filter
+        if (activeFilters.genre) {
+          params.with_genres = getGenreId(activeFilters.genre);
+        }
+
+        // Handle year filter with proper date ranges
+        if (activeFilters.year) {
+          const year = activeFilters.year;
+          params.sort_by = params.sort_by || 'popularity.desc';
+          params['primary_release_date.gte'] = `${year}-01-01`;
+          params['primary_release_date.lte'] = `${year}-12-31`;
+          
+          // Ensure we get movies with valid release dates
+          params.include_null_release_dates = false;
+        }
+
+        // Handle tag filters
+        if (activeFilters.tag) {
+          switch (activeFilters.tag) {
+            case "New Releases":
+              const threeMonthsAgo = new Date();
+              threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+              params.sort_by = "release_date.desc";
+              params['release_date.gte'] = threeMonthsAgo.toISOString().split('T')[0];
+              break;
+            case "Trending Now":
+              endpoint = '/trending/movie/day';
+              break;
+            case "Popular Movies":
+              params.sort_by = "popularity.desc";
+              params['vote_count.gte'] = 100;
+              break;
+            case "Award Winners":
+              params.sort_by = "vote_average.desc";
+              params['vote_count.gte'] = 200;
+              params['vote_average.gte'] = 8;
+              break;
+          }
+        }
+
+        const response = await axios.get(endpoint, { params });
+        
+        // Update total pages with API limit
+        const apiTotalPages = Math.min(response.data.total_pages, 500);
+        
+        const processedMovies = response.data.results
           .filter(movie => movie.backdrop_path !== null && movie.poster_path !== null)
           .map(movie => ({
             ...movie,
             media_type: 'movie'
           }));
 
-        setTrendingMovies(processMovies(trendingRes.data.results));
-        setPopularMovies(processMovies(popularRes.data.results));
-
-        // Combine all movies and remove duplicates
-        const allMovies = [...actionRes.data.results, ...comedyRes.data.results, 
-                          ...horrorRes.data.results, ...romanceRes.data.results]
+        setMovies(processedMovies);
+        setTotalPages(apiTotalPages);
+        setTotalResults(apiTotalPages * ITEMS_PER_PAGE); // Adjust total results based on page limit
+        setError(null);
+      } catch (error: any) {
+        setError(error.response?.status === 400 
+          ? 'Invalid page number. Showing first page instead.' 
+          : 'Failed to load movies. Please try again later.');
         
-        const uniqueMovies = [...new Map(
-          processMovies(allMovies)
-            .map(movie => [movie.id, movie])
-        ).values()];
-
-        setMovies(uniqueMovies)
-        setError(null)
-      } catch (error) {
-        setError('Failed to load movies. Please try again later.')
-        console.error('Error fetching movies:', error)
+        // If we get a 400 error, reset to page 1
+        if (error.response?.status === 400) {
+          setCurrentPage(1);
+        }
+        console.error('Error fetching movies:', error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    fetchMovies()
-  }, [ activeFilters ])
-
-  const filterMovies = (movies: Movie[], filters: FilterOptions) => {
-    return movies.filter(movie => {
-      // Genre filter
-      if (filters.genre && !movie.genre_ids?.includes(getGenreId(filters.genre))) {
-        return false;
-      }
-
-      // Year filter
-      if (filters.year && filters.year !== "") {
-        const movieYear = new Date(movie.release_date).getFullYear();
-        const filterYear = parseInt(filters.year);
-        if (movieYear !== filterYear) {
-          return false;
-        }
-      }
-
-      // Tag filter
-      if (filters.tag) {
-        switch (filters.tag) {
-          case "New Releases":
-            const threeMonthsAgo = new Date();
-            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-            return new Date(movie.release_date) >= threeMonthsAgo;
-          case "Trending Now":
-            return trendingMovies.some(trending => trending.id === movie.id);
-          case "Popular Series":
-            return popularMovies.some(popular => popular.id === movie.id);
-          case "Action Movies":
-            return movie.genre_ids?.includes(28); // 28 is Action genre ID
-          case "Award Winners":
-            return (movie.vote_average || 0) >= 8.0;
-          default:
-            return true;
-        }
-      }
-
-      return true;
-    });
-  };
-
-  const sortMovies = (movies: Movie[], sortBy: string) => {
-    return [...movies].sort((a, b) => {
-      switch (sortBy) {
-        case "popularity.desc":
-          return (b.popularity || 0) - (a.popularity || 0);
-        case "vote_average.desc":
-          return (b.vote_average || 0) - (a.vote_average || 0);
-        case "release_date.desc":
-          return new Date(b.release_date).getTime() - new Date(a.release_date).getTime();
-        case "release_date.asc":
-          return new Date(a.release_date).getTime() - new Date(b.release_date).getTime();
-        default:
-          return 0;
-      }
-    });
-  };
+    fetchMovies();
+  }, [currentPage, activeFilters]);
 
   const getGenreId = (genreName: string): number => {
     const genreMap: { [key: string]: number } = {
@@ -172,13 +158,15 @@ function Movies() {
   };
 
   const handleFilterChange = (filters: FilterOptions) => {
+    setCurrentPage(1); // Reset to first page when filters change
     setActiveFilters(filters);
-    
-    // Apply filters and sorting
-    let filtered = filterMovies(movies, filters);
-    filtered = sortMovies(filtered, filters.sort);
-    
-    setFilteredMovies(filtered);
+  };
+
+  const handlePageChange = (page: number) => {
+    // Ensure page number is within valid range
+    const safePage = Math.min(Math.max(1, page), 500);
+    setCurrentPage(safePage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const MoviesGrid = ({ movies, title }: { movies: Movie[], title: string }) => (
@@ -255,26 +243,64 @@ function Movies() {
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
       <div className="px-2 py-6 md:px-3 lg:px-4">
-        <div className="flex gap-6">
-          <Filter onFilterChange={handleFilterChange} />
+        {/* Mobile Filter Toggle */}
+        <div className="md:hidden mb-4">
+          <button
+            onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-800/50 rounded-lg text-gray-300 hover:text-white"
+          >
+            <FiFilter className="w-5 h-5" />
+            <span>Filters</span>
+          </button>
+        </div>
+
+        <div className="relative flex flex-col md:flex-row gap-6">
+          {/* Filter Section */}
+          <div className={`
+            fixed inset-0 z-40 md:relative md:inset-auto
+            transition-transform duration-300 ease-in-out
+            ${isMobileFilterOpen ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+          `}>
+            {/* Mobile Overlay */}
+            <div 
+              className="fixed inset-0 bg-black/50 md:hidden"
+              onClick={() => setIsMobileFilterOpen(false)}
+            />
+            
+            {/* Filter Content */}
+            <div className="absolute right-0 top-0 bottom-0 w-[320px] md:w-auto md:relative">
+              <Filter onFilterChange={(filters) => {
+                handleFilterChange(filters);
+                setIsMobileFilterOpen(false); // Close filter on mobile after selection
+              }} />
+            </div>
+          </div>
           
+          {/* Main Content */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold text-white md:text-3xl">
+              <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
                 Movies
               </h1>
               <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
             </div>
 
             <MoviesGrid 
-              movies={filteredMovies.length > 0 ? filteredMovies : movies} 
-              title="All Movies" 
+              movies={movies} 
+              title={`Movies ${activeFilters.genre ? `- ${activeFilters.genre}` : ''}`} 
+            />
+
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalResults}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={handlePageChange}
             />
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Movies
+export default Movies;

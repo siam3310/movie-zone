@@ -5,6 +5,7 @@ import { Skeleton } from "@mui/material";
 import { Movie } from "@/types/movie";
 import ViewMode from "../components/common/ViewMode";
 import Filter from "../components/common/Filter";
+import Pagination from '../components/common/Pagination';
 
 interface TVShowDetails extends Movie {
   vote_average: number;
@@ -22,93 +23,121 @@ interface FilterOptions {
 }
 
 function TVShows() {
-  const [popularShows, setPopularShows] = useState<TVShowDetails[]>([]);
-  const [trendingShows, setTrendingShows] = useState<TVShowDetails[]>([]);
-  const [allShows, setAllShows] = useState<TVShowDetails[]>([]);
+  const [shows, setShows] = useState<TVShowDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [filteredShows, setFilteredShows] = useState<TVShowDetails[]>([]);
   const [activeFilters, setActiveFilters] = useState<FilterOptions>({
     genre: "",
     year: "",
     sort: "popularity.desc",
     tag: "",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalResults, setTotalResults] = useState(0);
+  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
-    document.title = "TV Shows - MovieZone";
-
-    async function fetchTVShowDetails(shows: any[]) {
-      const detailedShows = await Promise.all(
-        shows.map(async (show) => {
-          try {
-            const response = await axios.get(`/tv/${show.id}`);
-            return {
-              ...show,
-              number_of_seasons: response.data.number_of_seasons,
-              status: response.data.status,
-              networks: response.data.networks
-            };
-          } catch (error) {
-            console.error(`Error fetching details for show ${show.id}:`, error);
-            return show;
-          }
-        })
-      );
-      return detailedShows;
-    }
+    document.title = "Top Rated TV Shows - MovieZone";
 
     async function fetchTVShows() {
       try {
-        // Fetch trending, popular, and all TV shows
-        const [trendingResponse, popularResponse, allShowsResponse] = await Promise.all([
-          axios.get('/trending/tv/day'),
-          axios.get('/discover/tv', {
-            params: {
-              sort_by: 'popularity.desc',
-              page: 1,
-              include_adult: false,
-              include_null_first_air_dates: false,
-              'vote_count.gte': 100,
-              'first_air_date.gte': '1990-01-01'
-            }
-          }),
-          axios.get('/discover/tv', {
-            params: {
-              sort_by: 'first_air_date.desc',
-              page: 1,
-              include_adult: false,
-              include_null_first_air_dates: false,
-              'first_air_date.lte': new Date().toISOString().split('T')[0], // Today's date
-              'first_air_date.gte': new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 90 days
-            }
-          })
-        ]);
+        setLoading(true);
+        let endpoint = '/tv/top_rated';
+        let params: any = {
+          page: currentPage,
+          include_adult: false,
+        };
 
-        const processShows = (shows: any[]) => shows.map((show: any) => ({
-          ...show,
-          media_type: 'tv',
-          title: show.name,
-          release_date: show.first_air_date
-        })).filter((show: Movie) =>
-          show.backdrop_path !== null && show.poster_path !== null
-        );
+        // Handle sorting
+        switch (activeFilters.sort) {
+          case "vote_average.desc":
+            params['vote_count.gte'] = 200;
+            break;
+          case "release_date.desc":
+          case "release_date.asc":
+            endpoint = '/discover/tv';
+            params.sort_by = activeFilters.sort === "release_date.desc" 
+              ? "first_air_date.desc" 
+              : "first_air_date.asc";
+            break;
+          case "popularity.desc":
+            endpoint = '/discover/tv';
+            params.sort_by = "popularity.desc";
+            break;
+        }
 
-        const trendingTvShows = processShows(trendingResponse.data.results);
-        const popularTvShows = processShows(popularResponse.data.results);
-        const allTvShows = processShows(allShowsResponse.data.results);
+        // Handle genre filter
+        if (activeFilters.genre) {
+          endpoint = '/discover/tv';
+          params.with_genres = getGenreId(activeFilters.genre);
+        }
 
-        // Fetch details for all sets of shows
-        const [detailedTrendingShows, detailedPopularShows, detailedAllShows] = await Promise.all([
-          fetchTVShowDetails(trendingTvShows),
-          fetchTVShowDetails(popularTvShows),
-          fetchTVShowDetails(allTvShows)
-        ]);
+        // Handle year filter with proper date ranges
+        if (activeFilters.year) {
+          endpoint = '/discover/tv';
+          const year = activeFilters.year;
+          params.sort_by = params.sort_by || 'popularity.desc';
+          params['first_air_date.gte'] = `${year}-01-01`;
+          params['first_air_date.lte'] = `${year}-12-31`;
+          
+          // Ensure we get shows with valid dates
+          params.include_null_first_air_dates = false;
+        }
 
-        setTrendingShows(detailedTrendingShows);
-        setPopularShows(detailedPopularShows);
-        setAllShows(detailedAllShows);
+        // Handle tag filters
+        if (activeFilters.tag) {
+          endpoint = '/discover/tv';
+          switch (activeFilters.tag) {
+            case "New Releases":
+              const threeMonthsAgo = new Date();
+              threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+              params.sort_by = "first_air_date.desc";
+              params['first_air_date.gte'] = threeMonthsAgo.toISOString().split('T')[0];
+              break;
+            case "Trending Now":
+              endpoint = '/trending/tv/day';
+              break;
+            case "Popular Series":
+              params.sort_by = "popularity.desc";
+              params['vote_count.gte'] = 100;
+              break;
+            case "Award Winners":
+              params.sort_by = "vote_average.desc";
+              params['vote_count.gte'] = 200;
+              params['vote_average.gte'] = 8;
+              break;
+          }
+        }
+
+        const response = await axios.get(endpoint, { params });
+        
+        const processedShows = response.data.results
+          .filter((show: any) => show.backdrop_path !== null && show.poster_path !== null)
+          .map((show: any) => ({
+            ...show,
+            media_type: 'tv',
+            title: show.name,
+            release_date: show.first_air_date
+          }));
+
+        // Calculate real total pages based on actual results
+        const actualResults = response.data.total_results;
+        const maxResults = Math.min(actualResults, 10000); // TMDB typically limits to 10000 results
+        const calculatedPages = Math.ceil(maxResults / ITEMS_PER_PAGE);
+        const actualTotalPages = Math.min(calculatedPages, response.data.total_pages);
+
+        setShows(processedShows);
+        setTotalPages(actualTotalPages);
+        setTotalResults(maxResults);
+
+        // Reset to page 1 if current page is beyond total pages
+        if (currentPage > actualTotalPages) {
+          setCurrentPage(1);
+        }
+
+        setError(null);
       } catch (error) {
         console.error("Error fetching TV shows:", error);
         setError("Failed to load TV shows. Please try again later.");
@@ -118,100 +147,59 @@ function TVShows() {
     }
 
     fetchTVShows();
-  }, [ activeFilters ]);
+  }, [currentPage, activeFilters]);
 
-  const filterShows = (shows: TVShowDetails[], filters: FilterOptions) => {
-    return shows.filter(show => {
-      // Genre filter
-      if (filters.genre && !show.genre_ids?.includes(getGenreId(filters.genre))) {
-        return false;
-      }
-
-      // Year filter
-      if (filters.year && filters.year !== "") {
-        const showYear = new Date(show.release_date).getFullYear();
-        const filterYear = parseInt(filters.year);
-        if (showYear !== filterYear) {
-          return false;
-        }
-      }
-
-      // Tag filter
-      if (filters.tag) {
-        switch (filters.tag) {
-          case "New Releases":
-            const threeMonthsAgo = new Date();
-            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-            return new Date(show.release_date) >= threeMonthsAgo;
-          
-          case "Trending Now":
-            return trendingShows.some(trending => trending.id === show.id);
-          
-          case "Popular Series":
-            return popularShows.some(popular => popular.id === show.id);
-          
-          case "Netflix Originals":
-            return show.networks?.some(network => network.name === "Netflix");
-          
-          case "Action Movies":
-            return show.genre_ids?.includes(28); // 28 is the ID for Action
-          
-          case "Award Winners":
-            return show.vote_average >= 8.0; // Consider shows with high ratings as award winners
-          
-          default:
-            return true;
-        }
-      }
-
-      return true;
-    });
+  // Update genre ID mapping with correct TV show genre IDs
+  const getGenreId = (genreName: string): number => {
+    const genreMap: { [key: string]: number } = {
+      action: 10759, // Action & Adventure
+      animation: 16,
+      comedy: 35,
+      crime: 80,
+      documentary: 99,
+      drama: 18,
+      family: 10751,
+      fantasy: 10765, // Sci-Fi & Fantasy
+      kids: 10762,
+      mystery: 9648,
+      news: 10763,
+      reality: 10764,
+      soap: 10766,
+      talk: 10767,
+      'war-politics': 10768,
+      western: 37
+    };
+    return genreMap[genreName.toLowerCase()] || 0;
   };
 
-  const sortShows = (shows: TVShowDetails[], sortBy: string) => {
+  // Add sorting function
+  const sortShows = (shows: TVShowDetails[]) => {
+    const { sort } = activeFilters;
     return [...shows].sort((a, b) => {
-      switch (sortBy) {
+      switch (sort) {
         case "popularity.desc":
           return (b.popularity || 0) - (a.popularity || 0);
         case "vote_average.desc":
-          const aVote = a.vote_average || 0;
-          const bVote = b.vote_average || 0;
-          return bVote - aVote;
+          return (b.vote_average || 0) - (a.vote_average || 0);
         case "release_date.desc":
-          return new Date(b.release_date).getTime() - new Date(a.release_date).getTime();
+          return new Date(b.first_air_date).getTime() - new Date(a.first_air_date).getTime();
         case "release_date.asc":
-          return new Date(a.release_date).getTime() - new Date(b.release_date).getTime();
+          return new Date(a.first_air_date).getTime() - new Date(b.first_air_date).getTime();
         default:
           return 0;
       }
     });
   };
 
-  // Helper function to convert genre name to ID (you'll need to add actual genre IDs)
-  const getGenreId = (genreName: string): number => {
-    const genreMap: { [key: string]: number } = {
-      action: 28,
-      comedy: 35,
-      drama: 18,
-      horror: 27,
-      // Add more genres and their IDs
-    };
-    return genreMap[genreName.toLowerCase()] || 0;
+  const handleFilterChange = (filters: FilterOptions) => {
+    // Reset to first page when filters change
+    setCurrentPage(1);
+    setActiveFilters(filters);
   };
 
-  const handleFilterChange = (filters: FilterOptions) => {
-    setActiveFilters(filters);
-    
-    // Get all unique shows
-    let shows = getAllShows();
-    
-    // Apply filters
-    shows = filterShows(shows, filters);
-    
-    // Apply sorting
-    shows = sortShows(shows, filters.sort);
-    
-    setFilteredShows(shows);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const ShowsGrid = ({ shows, title }: { shows: TVShowDetails[], title: string }) => (
@@ -285,19 +273,6 @@ function TVShows() {
     );
   }
 
-  const getAllShows = () => {
-    // Combine and remove duplicates using Set and id comparison
-    const combinedShows = [...new Map(
-      [...trendingShows, ...popularShows, ...allShows]
-        .map(show => [show.id, show])
-    ).values()];
-
-    // Sort by release date (newest first)
-    return combinedShows.sort((a, b) => 
-      new Date(b.release_date).getTime() - new Date(a.release_date).getTime()
-    );
-  };
-
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
       <div className="px-2 py-6 md:px-3 lg:px-4">
@@ -307,14 +282,21 @@ function TVShows() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold text-white md:text-3xl">
-                TV Shows
+                Top Rated TV Shows
               </h1>
               <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
             </div>
 
             <ShowsGrid 
-              shows={filteredShows.length > 0 ? filteredShows : getAllShows()} 
-              title="All TV Shows" 
+              shows={sortShows(shows)} 
+              title={`Top Rated TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ''}`} 
+            />
+
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalResults}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={handlePageChange}
             />
           </div>
         </div>

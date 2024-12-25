@@ -13,9 +13,19 @@ const Pagination: React.FC<PaginationProps> = ({
   itemsPerPage,
   onPageChange,
 }) => {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  // Calculate real total pages
+  const calculatedPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = calculatedPages > 0 ? calculatedPages : 1;
   
-  if (totalPages <= 1) return null;
+  // Don't show pagination if there's only one page or no items
+  if (totalPages <= 1 || totalItems === 0) return null;
+
+  // Ensure current page is within bounds
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  if (safePage !== currentPage) {
+    onPageChange(safePage);
+    return null;
+  }
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
@@ -24,26 +34,32 @@ const Pagination: React.FC<PaginationProps> = ({
     if (showEllipsis) {
       if (currentPage <= 4) {
         // Show first 5 pages + ellipsis + last page
-        for (let i = 1; i <= 5; i++) pages.push(i);
-        pages.push('...');
-        pages.push(totalPages);
+        for (let i = 1; i <= Math.min(5, totalPages); i++) pages.push(i);
+        if (totalPages > 5) {
+          pages.push('...');
+          pages.push(totalPages);
+        }
       } else if (currentPage >= totalPages - 3) {
         // Show first page + ellipsis + last 5 pages
         pages.push(1);
-        pages.push('...');
-        for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+        if (totalPages > 5) {
+          pages.push('...');
+          for (let i = Math.max(totalPages - 4, 2); i <= totalPages; i++) pages.push(i);
+        }
       } else {
         // Show first page + ellipsis + current-1, current, current+1 + ellipsis + last page
         pages.push(1);
         pages.push('...');
-        pages.push(currentPage - 1);
-        pages.push(currentPage);
-        pages.push(currentPage + 1);
-        pages.push('...');
-        pages.push(totalPages);
+        for (let i = currentPage - 1; i <= Math.min(currentPage + 1, totalPages); i++) {
+          pages.push(i);
+        }
+        if (currentPage + 1 < totalPages) {
+          pages.push('...');
+          pages.push(totalPages);
+        }
       }
     } else {
-      // Show all pages
+      // Show all pages when total pages is small
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     }
     
