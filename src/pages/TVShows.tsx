@@ -5,7 +5,8 @@ import { Skeleton } from "@mui/material";
 import { Movie } from "@/types/movie";
 import ViewMode from "../components/common/ViewMode";
 import Filter from "../components/common/Filter";
-import Pagination from '../components/common/Pagination';
+import Pagination from "../components/common/Pagination";
+import { FiFilter } from "react-icons/fi";
 
 interface TVShowDetails extends Movie {
   vote_average: number;
@@ -26,7 +27,7 @@ function TVShows() {
   const [shows, setShows] = useState<TVShowDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [activeFilters, setActiveFilters] = useState<FilterOptions>({
     genre: "",
     year: "",
@@ -36,6 +37,7 @@ function TVShows() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
@@ -44,7 +46,7 @@ function TVShows() {
     async function fetchTVShows() {
       try {
         setLoading(true);
-        let endpoint = '/tv/top_rated';
+        let endpoint = "/tv/top_rated";
         let params: any = {
           page: currentPage,
           include_adult: false,
@@ -53,80 +55,89 @@ function TVShows() {
         // Handle sorting
         switch (activeFilters.sort) {
           case "vote_average.desc":
-            params['vote_count.gte'] = 200;
+            params["vote_count.gte"] = 200;
             break;
           case "release_date.desc":
           case "release_date.asc":
-            endpoint = '/discover/tv';
-            params.sort_by = activeFilters.sort === "release_date.desc" 
-              ? "first_air_date.desc" 
-              : "first_air_date.asc";
+            endpoint = "/discover/tv";
+            params.sort_by =
+              activeFilters.sort === "release_date.desc"
+                ? "first_air_date.desc"
+                : "first_air_date.asc";
             break;
           case "popularity.desc":
-            endpoint = '/discover/tv';
+            endpoint = "/discover/tv";
             params.sort_by = "popularity.desc";
             break;
         }
 
         // Handle genre filter
         if (activeFilters.genre) {
-          endpoint = '/discover/tv';
+          endpoint = "/discover/tv";
           params.with_genres = getGenreId(activeFilters.genre);
         }
 
         // Handle year filter with proper date ranges
         if (activeFilters.year) {
-          endpoint = '/discover/tv';
+          endpoint = "/discover/tv";
           const year = activeFilters.year;
-          params.sort_by = params.sort_by || 'popularity.desc';
-          params['first_air_date.gte'] = `${year}-01-01`;
-          params['first_air_date.lte'] = `${year}-12-31`;
-          
+          params.sort_by = params.sort_by || "popularity.desc";
+          params["first_air_date.gte"] = `${year}-01-01`;
+          params["first_air_date.lte"] = `${year}-12-31`;
+
           // Ensure we get shows with valid dates
           params.include_null_first_air_dates = false;
         }
 
         // Handle tag filters
         if (activeFilters.tag) {
-          endpoint = '/discover/tv';
+          endpoint = "/discover/tv";
           switch (activeFilters.tag) {
             case "New Releases":
               const threeMonthsAgo = new Date();
               threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
               params.sort_by = "first_air_date.desc";
-              params['first_air_date.gte'] = threeMonthsAgo.toISOString().split('T')[0];
+              params["first_air_date.gte"] = threeMonthsAgo
+                .toISOString()
+                .split("T")[0];
               break;
             case "Trending Now":
-              endpoint = '/trending/tv/day';
+              endpoint = "/trending/tv/day";
               break;
             case "Popular Series":
               params.sort_by = "popularity.desc";
-              params['vote_count.gte'] = 100;
+              params["vote_count.gte"] = 100;
               break;
             case "Award Winners":
               params.sort_by = "vote_average.desc";
-              params['vote_count.gte'] = 200;
-              params['vote_average.gte'] = 8;
+              params["vote_count.gte"] = 200;
+              params["vote_average.gte"] = 8;
               break;
           }
         }
 
         const response = await axios.get(endpoint, { params });
-        
+
         const processedShows = response.data.results
-          .filter((show: any) => show.backdrop_path !== null && show.poster_path !== null)
+          .filter(
+            (show: any) =>
+              show.backdrop_path !== null && show.poster_path !== null
+          )
           .map((show: any) => ({
             ...show,
-            media_type: 'tv',
+            media_type: "tv",
             title: show.name,
-            release_date: show.first_air_date
+            release_date: show.first_air_date,
           }));
 
         // Calculate real total pages based on actual results
         const actualResults = response.data.total_results;
         const maxResults = Math.min(actualResults, 10000); // TMDB typically limits to 10000 results
         const calculatedPages = Math.ceil(maxResults / ITEMS_PER_PAGE);
-        const actualTotalPages = Math.min(calculatedPages, response.data.total_pages);
+        const actualTotalPages = Math.min(
+          calculatedPages,
+          response.data.total_pages
+        );
 
         setShows(processedShows);
         setTotalPages(actualTotalPages);
@@ -166,8 +177,8 @@ function TVShows() {
       reality: 10764,
       soap: 10766,
       talk: 10767,
-      'war-politics': 10768,
-      western: 37
+      "war-politics": 10768,
+      western: 37,
     };
     return genreMap[genreName.toLowerCase()] || 0;
   };
@@ -182,9 +193,15 @@ function TVShows() {
         case "vote_average.desc":
           return (b.vote_average || 0) - (a.vote_average || 0);
         case "release_date.desc":
-          return new Date(b.first_air_date).getTime() - new Date(a.first_air_date).getTime();
+          return (
+            new Date(b.first_air_date).getTime() -
+            new Date(a.first_air_date).getTime()
+          );
         case "release_date.asc":
-          return new Date(a.first_air_date).getTime() - new Date(b.first_air_date).getTime();
+          return (
+            new Date(a.first_air_date).getTime() -
+            new Date(b.first_air_date).getTime()
+          );
         default:
           return 0;
       }
@@ -199,21 +216,28 @@ function TVShows() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const ShowsGrid = ({ shows, title }: { shows: TVShowDetails[], title: string }) => (
+  const ShowsGrid = ({
+    shows,
+    title,
+  }: {
+    shows: TVShowDetails[];
+    title: string;
+  }) => (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-white md:text-2xl lg:text-3xl">
           {title}
         </h2>
       </div>
-      <div className={`${
-        viewMode === 'grid' 
-          ? 'grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4'
-          : 'flex flex-col gap-4'
-      }`}>
+      <div
+        className={`${viewMode === "grid"
+            ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+            : "flex flex-col gap-4"
+          }`}
+      >
         {shows.map((show) => (
           <div key={show.id} className="group relative">
             <Thumbnail movie={show} viewMode={viewMode} />
@@ -233,7 +257,7 @@ function TVShows() {
               <Skeleton
                 variant="rectangular"
                 height={600}
-                sx={{ bgcolor: '#2b2b2b', borderRadius: '0.5rem' }}
+                sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
               />
             </div>
 
@@ -243,22 +267,26 @@ function TVShows() {
                 variant="text"
                 width={200}
                 height={40}
-                sx={{ bgcolor: '#2b2b2b', marginBottom: '24px' }}
+                sx={{ bgcolor: "#2b2b2b", marginBottom: "24px" }}
               />
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {[...Array(12)].map((_, index) => (
-                  <div key={index} className="relative h-[280px] min-w-[160px] md:h-[420px]">
+                  <div
+                    key={index}
+                    className="relative h-[280px] min-w-[160px] md:h-[420px]"
+                  >
                     <Skeleton
                       variant="rectangular"
                       width="100%"
                       height="100%"
                       sx={{
-                        bgcolor: '#2b2b2b',
-                        borderRadius: '0.125rem',
-                        transform: 'scale(1)',
-                        '&::after': {
-                          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)'
-                        }
+                        bgcolor: "#2b2b2b",
+                        borderRadius: "0.125rem",
+                        transform: "scale(1)",
+                        "&::after": {
+                          background:
+                            "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)",
+                        },
                       }}
                     />
                   </div>
@@ -290,9 +318,47 @@ function TVShows() {
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
       <div className="px-2 py-6 md:px-3 lg:px-4">
-        <div className="flex gap-6">
-          <Filter onFilterChange={handleFilterChange} />
-          
+        {/* Mobile Filter Button */}
+        <div className="md:hidden mb-4">
+          <button
+            onClick={() => setIsMobileFilterOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 
+                     bg-gray-800/50 rounded-xl border border-gray-700/50
+                     text-gray-200 hover:bg-gray-700/50 transition-all"
+          >
+            <FiFilter className="w-5 h-5" />
+            <span>Filters</span>
+          </button>
+        </div>
+
+        <div className="relative flex flex-col md:flex-row gap-6">
+          {/* Desktop Filter */}
+          <div className="hidden md:block">
+            <div className="sticky top-[84px]">
+              <Filter onFilterChange={handleFilterChange} />
+            </div>
+          </div>
+
+          {/* Mobile Filter Drawer */}
+          {isMobileFilterOpen && (
+            <div className="fixed inset-0 bg-black/60 z-50 md:hidden">
+              <div 
+                className="absolute inset-0"
+                onClick={() => setIsMobileFilterOpen(false)}
+              />
+              <div className="absolute inset-y-0 right-0 w-[300px] bg-[#141414]">
+                <Filter 
+                  onFilterChange={(filters) => {
+                    handleFilterChange(filters);
+                    setIsMobileFilterOpen(false);
+                  }}
+                  onClose={() => setIsMobileFilterOpen(false)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Main Content */}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold text-white md:text-3xl">
@@ -301,9 +367,10 @@ function TVShows() {
               <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
             </div>
 
-            <ShowsGrid 
-              shows={sortShows(shows)} 
-              title={`TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ''}`} 
+            <ShowsGrid
+              shows={sortShows(shows)}
+              title={`TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ""
+                }`}
             />
 
             <Pagination
