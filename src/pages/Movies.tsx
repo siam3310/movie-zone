@@ -109,8 +109,8 @@ function Movies() {
         const apiTotalPages = Math.min(response.data.total_pages, 500);
         
         const processedMovies = response.data.results
-          .filter(movie => movie.backdrop_path !== null && movie.poster_path !== null)
-          .map(movie => ({
+          .filter((movie: Movie) => movie.backdrop_path !== null && movie.poster_path !== null)
+          .map((movie: Movie) => ({
             ...movie,
             media_type: 'movie'
           }));
@@ -135,7 +135,7 @@ function Movies() {
     }
 
     fetchMovies();
-  }, [currentPage, activeFilters]);
+  }, [currentPage, activeFilters, totalPages]);
 
   const getGenreId = (genreName: string): number => {
     const genreMap: { [key: string]: number } = {

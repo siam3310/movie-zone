@@ -147,7 +147,7 @@ function TVShows() {
     }
 
     fetchTVShows();
-  }, [currentPage, activeFilters]);
+  }, [currentPage, activeFilters, totalPages]);
 
   // Update genre ID mapping with correct TV show genre IDs
   const getGenreId = (genreName: string): number => {
