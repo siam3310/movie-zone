@@ -3,14 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { baseUrl } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
 import { Movie } from "../types/movie";
+import { BsPlayFill, BsStarFill } from 'react-icons/bs';
+import { BiTime } from 'react-icons/bi';
+import { HiPlus } from 'react-icons/hi';
 
 const FALLBACK_IMAGE = 'https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available';
 
 interface Props {
   movie: Movie;
+  viewMode: 'grid' | 'list';
 }
 
-function Thumbnail({ movie }: Props) {
+function Thumbnail({ movie, viewMode }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -26,6 +30,104 @@ function Thumbnail({ movie }: Props) {
     movie.poster_path || movie.backdrop_path ? 
     `${baseUrl}${movie.poster_path || movie.backdrop_path}` : 
     FALLBACK_IMAGE;
+
+  if (viewMode === 'list') {
+    return (
+      <div 
+        className="group relative bg-gray-900/30 rounded-xl overflow-hidden transition-all duration-300
+                   hover:bg-gray-800/50 border border-gray-800/50 hover:border-gray-700/50 backdrop-blur-sm
+                   hover:shadow-xl hover:shadow-black/20"
+        onClick={handleClick}
+      >
+        <div className="flex gap-6 p-4">
+          {/* Movie Poster */}
+          <div className="relative h-[200px] w-[140px] rounded-lg overflow-hidden flex-shrink-0">
+            <img
+              src={imageUrl}
+              alt={movie.title}
+              className="h-full w-full object-cover transition-transform duration-300 
+                         group-hover:scale-105"
+              onError={() => setImgError(true)}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-sm bg-black/60 px-2 py-1 rounded-md">
+              <BiTime className="w-4 h-4" />
+              <span>2h 30m</span>
+            </div>
+          </div>
+
+          {/* Movie Details */}
+          <div className="flex-1 py-2">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white group-hover:text-red-500 
+                             transition-colors line-clamp-1">
+                  {movie.title}
+                </h2>
+                <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
+                  <span>{new Date(movie.release_date).getFullYear()}</span>
+                  <span className="w-1 h-1 rounded-full bg-gray-600" />
+                  <div className="flex items-center gap-1">
+                    <BsStarFill className="w-4 h-4 text-yellow-500" />
+                    <span className="font-medium">{movie.vote_average?.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  className="p-2 rounded-full bg-gray-800/80 text-gray-400 hover:text-white
+                           hover:bg-gray-700/80 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Add to watchlist handler
+                  }}
+                >
+                  <HiPlus className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm text-gray-300 line-clamp-2">
+              {movie.overview}
+            </p>
+
+            <div className="flex items-center gap-3 mt-6">
+              <button 
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-red-600 text-white
+                         hover:bg-red-700 transition-colors font-medium"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClick();
+                }}
+              >
+                <BsPlayFill className="w-5 h-5" />
+                Watch Now
+              </button>
+              <button 
+                className="px-6 py-2.5 rounded-lg bg-gray-800/80 text-gray-300
+                         hover:bg-gray-700/80 hover:text-white transition-all font-medium"
+              >
+                View Details
+              </button>
+            </div>
+
+            {/* Genre Tags */}
+            <div className="flex items-center gap-2 mt-4">
+              {movie.genre_ids?.slice(0, 3).map((genreId) => (
+                <span 
+                  key={genreId}
+                  className="px-2 py-1 text-xs rounded-md bg-gray-800/80 text-gray-400
+                           border border-gray-700/50"
+                >
+                  Action
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
