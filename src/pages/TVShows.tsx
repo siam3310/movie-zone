@@ -227,30 +227,44 @@ function TVShows() {
     return (
       <div className="mt-[68px] min-h-screen bg-[#141414]">
         <div className="px-2 py-6 md:px-3 lg:px-4">
-          <Skeleton
-            variant="text"
-            width={200}
-            height={40}
-            sx={{ bgcolor: '#2b2b2b', marginBottom: '24px' }}
-          />
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {[...Array(15)].map((_, index) => (
-              <div key={index} className="relative h-[280px] min-w-[160px] md:h-[420px] md:min-w-[280px]">
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height="100%"
-                  sx={{
-                    bgcolor: '#2b2b2b',
-                    borderRadius: '0.125rem',
-                    transform: 'scale(1)',
-                    '&::after': {
-                      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)'
-                    }
-                  }}
-                />
+          <div className="flex gap-6">
+            {/* Filter Skeleton */}
+            <div className="hidden md:block w-[220px] flex-shrink-0">
+              <Skeleton
+                variant="rectangular"
+                height={600}
+                sx={{ bgcolor: '#2b2b2b', borderRadius: '0.5rem' }}
+              />
+            </div>
+
+            {/* Main Content Skeleton */}
+            <div className="flex-1">
+              <Skeleton
+                variant="text"
+                width={200}
+                height={40}
+                sx={{ bgcolor: '#2b2b2b', marginBottom: '24px' }}
+              />
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {[...Array(12)].map((_, index) => (
+                  <div key={index} className="relative h-[280px] min-w-[160px] md:h-[420px]">
+                    <Skeleton
+                      variant="rectangular"
+                      width="100%"
+                      height="100%"
+                      sx={{
+                        bgcolor: '#2b2b2b',
+                        borderRadius: '0.125rem',
+                        transform: 'scale(1)',
+                        '&::after': {
+                          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)'
+                        }
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
@@ -282,14 +296,14 @@ function TVShows() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold text-white md:text-3xl">
-                Top Rated TV Shows
+                All TV Shows
               </h1>
               <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
             </div>
 
             <ShowsGrid 
               shows={sortShows(shows)} 
-              title={`Top Rated TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ''}`} 
+              title={`TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ''}`} 
             />
 
             <Pagination
