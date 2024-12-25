@@ -118,7 +118,7 @@ function TVShows() {
     }
 
     fetchTVShows();
-  }, []);
+  }, [ activeFilters ]);
 
   const filterShows = (shows: TVShowDetails[], filters: FilterOptions) => {
     return shows.filter(show => {

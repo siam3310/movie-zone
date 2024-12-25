@@ -6,18 +6,36 @@ import { Skeleton } from '@mui/material'
 import ViewMode from '../components/common/ViewMode'
 import Filter from '../components/common/Filter'
 
+interface FilterOptions {
+  genre: string;
+  year: string;
+  sort: string;
+  tag?: string;
+}
+
 function Movies() {
   const [movies, setMovies] = useState<Movie[]>([])
+  const [trendingMovies, setTrendingMovies] = useState<Movie[]>([])
+  const [popularMovies, setPopularMovies] = useState<Movie[]>([])
+  const [filteredMovies, setFilteredMovies] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [activeFilters, setActiveFilters] = useState<FilterOptions>({
+    genre: "",
+    year: "",
+    sort: "popularity.desc",
+    tag: "",
+  });
 
   useEffect(() => {
     document.title = 'Movies - MovieZone'
 
     async function fetchMovies() {
       try {
-        const [actionRes, comedyRes, horrorRes, romanceRes] = await Promise.all([
+        const [trendingRes, popularRes, actionRes, comedyRes, horrorRes, romanceRes] = await Promise.all([
+          axios.get('/trending/movie/day'),
+          axios.get('/movie/popular'),
           axios.get('/discover/movie', {
             params: {
               with_genres: '28',
@@ -44,23 +62,24 @@ function Movies() {
           })
         ])
 
-        const action = actionRes.data.results || []
-        const comedy = comedyRes.data.results || []
-        const horror = horrorRes.data.results || []
-        const romance = romanceRes.data.results || []
-
-        // Combine all movies and remove duplicates
-        const allMovies = [...action, ...comedy, ...horror, ...romance]
+        const processMovies = (movies: any[]) => movies
           .filter(movie => movie.backdrop_path !== null && movie.poster_path !== null)
           .map(movie => ({
             ...movie,
             media_type: 'movie'
-          }))
+          }));
 
-        // Remove duplicates based on id
-        const uniqueMovies = Array.from(
-          new Map(allMovies.map(movie => [movie.id, movie])).values()
-        )
+        setTrendingMovies(processMovies(trendingRes.data.results));
+        setPopularMovies(processMovies(popularRes.data.results));
+
+        // Combine all movies and remove duplicates
+        const allMovies = [...actionRes.data.results, ...comedyRes.data.results, 
+                          ...horrorRes.data.results, ...romanceRes.data.results]
+        
+        const uniqueMovies = [...new Map(
+          processMovies(allMovies)
+            .map(movie => [movie.id, movie])
+        ).values()];
 
         setMovies(uniqueMovies)
         setError(null)
@@ -73,7 +92,94 @@ function Movies() {
     }
 
     fetchMovies()
-  }, [])
+  }, [ activeFilters ])
+
+  const filterMovies = (movies: Movie[], filters: FilterOptions) => {
+    return movies.filter(movie => {
+      // Genre filter
+      if (filters.genre && !movie.genre_ids?.includes(getGenreId(filters.genre))) {
+        return false;
+      }
+
+      // Year filter
+      if (filters.year && filters.year !== "") {
+        const movieYear = new Date(movie.release_date).getFullYear();
+        const filterYear = parseInt(filters.year);
+        if (movieYear !== filterYear) {
+          return false;
+        }
+      }
+
+      // Tag filter
+      if (filters.tag) {
+        switch (filters.tag) {
+          case "New Releases":
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            return new Date(movie.release_date) >= threeMonthsAgo;
+          case "Trending Now":
+            return trendingMovies.some(trending => trending.id === movie.id);
+          case "Popular Series":
+            return popularMovies.some(popular => popular.id === movie.id);
+          case "Action Movies":
+            return movie.genre_ids?.includes(28); // 28 is Action genre ID
+          case "Award Winners":
+            return (movie.vote_average || 0) >= 8.0;
+          default:
+            return true;
+        }
+      }
+
+      return true;
+    });
+  };
+
+  const sortMovies = (movies: Movie[], sortBy: string) => {
+    return [...movies].sort((a, b) => {
+      switch (sortBy) {
+        case "popularity.desc":
+          return (b.popularity || 0) - (a.popularity || 0);
+        case "vote_average.desc":
+          return (b.vote_average || 0) - (a.vote_average || 0);
+        case "release_date.desc":
+          return new Date(b.release_date).getTime() - new Date(a.release_date).getTime();
+        case "release_date.asc":
+          return new Date(a.release_date).getTime() - new Date(b.release_date).getTime();
+        default:
+          return 0;
+      }
+    });
+  };
+
+  const getGenreId = (genreName: string): number => {
+    const genreMap: { [key: string]: number } = {
+      action: 28,
+      adventure: 12,
+      animation: 16,
+      comedy: 35,
+      crime: 80,
+      documentary: 99,
+      drama: 18,
+      family: 10751,
+      fantasy: 14,
+      horror: 27,
+      mystery: 9648,
+      romance: 10749,
+      'sci-fi': 878,
+      thriller: 53
+    };
+    return genreMap[genreName.toLowerCase()] || 0;
+  };
+
+  const handleFilterChange = (filters: FilterOptions) => {
+    setActiveFilters(filters);
+    
+    // Apply filters and sorting
+    let filtered = filterMovies(movies, filters);
+    filtered = sortMovies(filtered, filters.sort);
+    
+    setFilteredMovies(filtered);
+  };
 
   const MoviesGrid = ({ movies, title }: { movies: Movie[], title: string }) => (
     <div className="mb-8">
@@ -146,11 +252,6 @@ function Movies() {
     )
   }
 
-  const handleFilterChange = (filters: any) => {
-    // Handle filter changes here
-    console.log('Filters changed:', filters);
-  };
-
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
       <div className="px-2 py-6 md:px-3 lg:px-4">
@@ -165,7 +266,10 @@ function Movies() {
               <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
             </div>
 
-            <MoviesGrid movies={movies} title="All Movies" />
+            <MoviesGrid 
+              movies={filteredMovies.length > 0 ? filteredMovies : movies} 
+              title="All Movies" 
+            />
           </div>
         </div>
       </div>
