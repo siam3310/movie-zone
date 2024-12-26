@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { FaPlay, FaCalendar, FaStar, FaInfoCircle, FaMagnet } from 'react-icons/fa';
-import VideoModal from '../common/VideoModal';
 import { TMDBEpisode } from '@/types/movie';
 import { TorrentInfo } from '@/types/torrent';
+import { useVideoModal } from '@/context/VideoModalContext';
 
 interface EpisodeItemProps {
   episode: TMDBEpisode;
@@ -20,7 +20,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
   tmdbId
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const { openModal } = useVideoModal();
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -34,7 +34,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
     window.open(magnetLink);
   };
 
-  const getEmbedUrl = () => {
+  const getVideoEmbedUrl = () => {
     if (imdbId) {
       return `https://vidsrc.xyz/embed/tv/${imdbId}/${episode.season_number}-${episode.episode_number}`;
     } else if (tmdbId) {
@@ -43,6 +43,13 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
     return '';
   };
 
+  const handlePlayClick = () => {
+    const embedUrl = getVideoEmbedUrl();
+    if (embedUrl) {
+      openModal(embedUrl);
+    }
+  };
+  
   return (
     <>
       <div className="group bg-gray-800/40 hover:bg-gray-800/60 border border-gray-700/50 
@@ -77,7 +84,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
             {/* Actions */}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setIsVideoModalOpen(true)}
+                onClick={handlePlayClick}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 
                          text-white rounded-lg transition-colors duration-200"
               >
@@ -140,13 +147,6 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
           )}
         </div>
       </div>
-
-      {/* Video Modal */}
-      <VideoModal
-        isOpen={isVideoModalOpen}
-        onClose={() => setIsVideoModalOpen(false)}
-        embedUrl={getEmbedUrl()}
-      />
     </>
   );
 };
