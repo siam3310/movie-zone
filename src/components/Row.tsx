@@ -130,7 +130,7 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
           className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16"
         >
           {movies.map((movie) => (
-            <Thumbnail key={movie.id} movie={movie} />
+            <Thumbnail key={movie.id} movie={movie} viewMode="grid" />
           ))}
         </div>
       </div>

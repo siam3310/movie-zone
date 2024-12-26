@@ -6,7 +6,6 @@ interface VideoModalProps {
   embedUrl: string;
 }
 
-interface Position { x: number; y: number; }
 interface DragPosition {
   right: number;
   bottom: number;
@@ -47,7 +46,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ isOpen, onClose, embedUrl }) =>
       isMinimized: !s.isMinimized,
       position: !s.isMinimized ? { right: EDGE_PADDING, bottom: EDGE_PADDING } : s.position
     }));
-  }, []);
+  }, [ ]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!state.isMinimized) return;

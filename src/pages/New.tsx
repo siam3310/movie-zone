@@ -105,7 +105,7 @@ function New() {
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {movies.map((movie) => (
-            <Thumbnail key={movie.id} movie={movie} />
+            <Thumbnail key={movie.id} movie={movie} viewMode="grid" />
           ))}
         </div>
       </div>
