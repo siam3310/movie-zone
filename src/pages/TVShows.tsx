@@ -253,7 +253,7 @@ function TVShows() {
         <div className="px-2 py-6 md:px-3 lg:px-4">
           <div className="flex gap-6">
             {/* Filter Skeleton */}
-            <div className="hidden md:block w-[220px] flex-shrink-0">
+            <div className="hidden md:block w-[280px] flex-shrink-0">
               <Skeleton
                 variant="rectangular"
                 height={600}
@@ -301,7 +301,7 @@ function TVShows() {
 
   if (error) {
     return (
-      <div className="mt-[68px] min-h-screen bg-[#141414] flex items-center justify-center">
+      <div className="min-h-screen bg-[#141414] flex items-center justify-center">
         <div className="text-white text-center">
           <p className="text-xl">{error}</p>
           <button
