@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaPlay, FaCalendar, FaStar, FaInfoCircle, FaMagnet } from 'react-icons/fa';
+import { FaPlay, FaCalendar, FaStar, FaInfoCircle, FaMagnet, FaSpinner } from 'react-icons/fa';
 import { TMDBEpisode } from '@/types/movie';
 import { TorrentInfo } from '@/types/torrent';
 import { useVideoModal } from '@/context/VideoModalContext';
@@ -11,13 +11,15 @@ interface EpisodeItemProps {
   selectedQuality: string;
   imdbId?: string;
   tmdbId?: string;
+  isLoadingTorrents?: boolean;
 }
 
 const EpisodeItem: React.FC<EpisodeItemProps> = ({
   episode,
   torrents = [],
   imdbId,
-  tmdbId
+  tmdbId,
+  isLoadingTorrents = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { openModal } = useVideoModal();
@@ -106,7 +108,12 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
 
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-slate-300 mb-2">Download Options</h4>
-              {torrents.length > 0 ? (
+              {isLoadingTorrents ? (
+                <div className="flex items-center gap-2 text-slate-400 py-4">
+                  <FaSpinner className="w-4 h-4 animate-spin" />
+                  <span>Loading download sources...</span>
+                </div>
+              ) : torrents.length > 0 ? (
                 <div className="grid gap-2">
                   {torrents.map((torrent, index) => (
                     <div
@@ -136,7 +143,10 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">No download options available.</p>
+                <div className="flex items-center gap-2 text-slate-500 py-4 px-3 bg-slate-800/20 rounded-lg border border-slate-800/50">
+                  <FaInfoCircle className="w-4 h-4" />
+                  <p className="text-sm">No download options available for this episode.</p>
+                </div>
               )}
             </div>
           </div>

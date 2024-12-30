@@ -16,6 +16,7 @@ interface EpisodeListProps {
   itemsPerPage: number;
   imdbId?: string;
   tmdbId?: string;
+  loadingTorrents?: number[];
 }
 
 const EpisodeList = ({
@@ -29,7 +30,8 @@ const EpisodeList = ({
   setCurrentPage,
   itemsPerPage,
   imdbId,
-  tmdbId
+  tmdbId,
+  loadingTorrents = []
 }: EpisodeListProps) => {
   // Reset pagination when season changes
   useEffect(() => {
@@ -40,6 +42,29 @@ const EpisodeList = ({
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentEpisodes = episodes.slice(startIndex, endIndex);
+
+  const filterTorrents = (episodeTorrents: TorrentInfo[]) => {
+    if (!episodeTorrents) return [];
+    
+    if (selectedQuality === 'All') {
+      // Group by quality and take top 2 from each
+      const qualityGroups: { [key: string]: TorrentInfo[] } = {};
+      episodeTorrents.forEach(torrent => {
+        if (!qualityGroups[torrent.quality]) {
+          qualityGroups[torrent.quality] = [];
+        }
+        if (qualityGroups[torrent.quality].length < 1) {
+          qualityGroups[torrent.quality].push(torrent);
+        }
+      });
+      return Object.values(qualityGroups).flat();
+    }
+    
+    // Filter by selected quality and take top 3
+    return episodeTorrents
+      .filter(t => t.quality === selectedQuality)
+      .slice(0, 3);
+  };
 
   return (
     <div className="space-y-6">
@@ -67,10 +92,11 @@ const EpisodeList = ({
             key={episode.id}
             episode={episode}
             onWatch={() => onWatch(episode)}
-            torrents={torrents[`${episode.episode_number}`] || []}
+            torrents={filterTorrents(torrents[`${episode.episode_number}`] || [])}
             selectedQuality={selectedQuality}
             imdbId={imdbId}
             tmdbId={tmdbId}
+            isLoadingTorrents={loadingTorrents.includes(episode.episode_number)}
           />
         ))}
       </div>
