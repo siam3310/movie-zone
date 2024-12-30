@@ -56,11 +56,12 @@ export const TorrentList: React.FC<TorrentListProps> = ({
   return (
     <div className="w-full space-y-4">
       {/* Filters and Sort */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-800/60 rounded-lg">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 
+                    bg-[#1a1a1a]/90 backdrop-blur-lg border border-gray-800/50 rounded-xl">
         {/* Quality Filter */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-gray-400">
-            <FaFilter className="w-4 h-4" />
+            <FaFilter className="w-4 h-4 text-red-500" />
             <span className="text-sm">Quality:</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -68,10 +69,10 @@ export const TorrentList: React.FC<TorrentListProps> = ({
               <button
                 key={quality}
                 onClick={() => handleFilterChange(quality)}
-                className={`px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
+                className={`px-3 py-1.5 text-sm rounded-xl transition-all duration-200 border ${
                   qualityFilter === quality
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
+                    ? 'bg-red-500/10 text-red-500 border-red-500/30'
+                    : 'bg-gray-800/30 text-gray-400 border-gray-700/50 hover:bg-gray-700/50 hover:text-white'
                 }`}
               >
                 {quality.toUpperCase()}
@@ -83,30 +84,23 @@ export const TorrentList: React.FC<TorrentListProps> = ({
         {/* Sort Options */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-gray-400">
-            <FaSort className="w-4 h-4" />
+            <FaSort className="w-4 h-4 text-red-500" />
             <span className="text-sm">Sort by:</span>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => handleSortChange('seeds')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
-                sortBy === 'seeds'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              Seeds
-            </button>
-            <button
-              onClick={() => handleSortChange('quality')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-all duration-200 ${
-                sortBy === 'quality'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
-              }`}
-            >
-              Quality
-            </button>
+            {['seeds', 'quality'].map((sortOption) => (
+              <button
+                key={sortOption}
+                onClick={() => handleSortChange(sortOption as 'seeds' | 'quality')}
+                className={`px-3 py-1.5 text-sm rounded-xl transition-all duration-200 border ${
+                  sortBy === sortOption
+                    ? 'bg-red-500/10 text-red-500 border-red-500/30'
+                    : 'bg-gray-800/30 text-gray-400 border-gray-700/50 hover:bg-gray-700/50 hover:text-white'
+                }`}
+              >
+                {sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -123,7 +117,8 @@ export const TorrentList: React.FC<TorrentListProps> = ({
             />
           ))
         ) : (
-          <div className="flex items-center justify-center p-8 text-gray-400 bg-gray-800/40 rounded-lg">
+          <div className="flex items-center justify-center p-8 text-gray-400 
+                        bg-[#1a1a1a]/90 backdrop-blur-lg border border-gray-800/50 rounded-xl">
             <p>No torrents found matching your criteria</p>
           </div>
         )}
