@@ -23,6 +23,21 @@ export default defineConfig({
         target: 'https://torrentio.strem.fun',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/torrentio/, ''),
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        }
       },
       '/api/yts': {
         target: 'https://yts.mx/api/v2',
@@ -38,7 +53,13 @@ export default defineConfig({
         target: 'https://v2.sg.media-imdb.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/imdb/, ''),
-      }
+      },
+      '/torrentio': {
+        target: 'https://torrentio.strem.fun',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/torrentio/, ''),
+        secure: false,
+      },
     },
     watch: {
       usePolling: true,

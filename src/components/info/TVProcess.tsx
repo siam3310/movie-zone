@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
-import ErrorMessage from './ErrorMessage';
+import ErrorMessage from "./ErrorMessage";
 import LoadingIndicator from "../common/LoadingIndicator";
 import EpisodeList from "./EpisodeList";
-import axios from 'axios';
+import axios from "axios";
 import { TorrentInfo } from "@/types/torrent";
 
 interface TVProcessProps {
@@ -17,9 +17,10 @@ interface TVProcessProps {
   itemsPerPage: number;
 }
 
-const TORRENTIO_BASE_URL = 'https://torrentio.strem.fun';
+const TORRENTIO_BASE_URL = '/api/torrentio';
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export const TVProcess = ({ 
+export const TVProcess = ({
   content,
   selectedSeason,
   setSelectedSeason,
@@ -31,73 +32,130 @@ export const TVProcess = ({
 }: TVProcessProps) => {
   const [seasons, setSeasons] = useState<TMDBSeason[]>([]);
   const [episodes, setEpisodes] = useState<TMDBEpisode[]>([]);
-  const [torrents, setTorrents] = useState<{ [key: string]: TorrentInfo[] }>({});
+  const [torrents, setTorrents] = useState<{ [key: string]: TorrentInfo[] }>(
+    {}
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [episodeCache, setEpisodeCache] = useState<{
+    [key: string]: TMDBEpisode[];
+  }>({});
+  const [loadingSeasons, setLoadingSeasons] = useState<number[]>([]);
 
-  // Fetch seasons and episodes
+  // Fetch seasons only once
   useEffect(() => {
     const fetchSeasons = async () => {
-      if (!content?.id) return;
-      
-      setIsLoading(true);
-      try {
-        const response = await axios.get(
-          `https://api.themoviedb.org/3/tv/${content.id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
-        );
-        setSeasons(response.data.seasons || []);
-        
-        // Fetch episodes for the selected season
-        if (selectedSeason) {
-          const episodesResponse = await axios.get(
-            `https://api.themoviedb.org/3/tv/${content.id}/season/${selectedSeason}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
+        if (!content?.id) return;
+  
+        setIsLoading(true);
+        try {
+          const response = await axios.get(
+            `https://api.themoviedb.org/3/tv/${content.id}?api_key=${
+              import.meta.env.VITE_TMDB_API_KEY
+            }`
           );
-          setEpisodes(episodesResponse.data.episodes || []);
-
-          // Fetch torrents for each episode
-          if (content.imdb_id) {
-            const newTorrents: { [key: string]: TorrentInfo[] } = {};
-            for (const episode of episodesResponse.data.episodes) {
-              try {
-                const torrentResponse = await axios.get(
-                  `${TORRENTIO_BASE_URL}/stream/${content.imdb_id}:${selectedSeason}:${episode.episode_number}.json`
-                );
-                
-                const episodeTorrents = torrentResponse.data.streams.map((stream: any) => {
-                  const qualityMatch = stream.name.match(/\[(.*?)\]/);
-                  const sizeMatch = stream.name.match(/\{(.*?)\}/);
-                  const seedsMatch = stream.name.match(/Seeds: (\d+)/);
-                  const peersMatch = stream.name.match(/Peers: (\d+)/);
-
-                  return {
-                    infoHash: stream.infoHash,
-                    quality: qualityMatch ? qualityMatch[1] : 'Unknown',
-                    size: sizeMatch ? sizeMatch[1] : 'Unknown',
-                    seeds: seedsMatch ? parseInt(seedsMatch[1]) : 0,
-                    peers: peersMatch ? parseInt(peersMatch[1]) : 0,
-                    provider: stream.name.split('\n')[0],
-                    magnetLink: `magnet:?xt=urn:btih:${stream.infoHash}&tr=http://tracker.opentrackr.org:1337/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://9.rarbg.com:2810/announce&tr=udp://tracker.openbittorrent.com:6969/announce`
-                  };
-                }).sort((a: TorrentInfo, b: TorrentInfo) => b.seeds - a.seeds);
-
-                newTorrents[episode.episode_number] = episodeTorrents;
-              } catch (error) {
-                console.error(`Error fetching torrents for episode ${episode.episode_number}:`, error);
-              }
-            }
-            setTorrents(newTorrents);
+          setSeasons(response.data.seasons || []);
+          // Auto-select first season if none selected
+          if (!selectedSeason && response.data.seasons?.length > 0) {
+            setSelectedSeason(response.data.seasons[0].season_number);
           }
-        }
-      } catch (error) {
-        console.error('Error fetching TV series data:', error);
-        setError('Failed to load TV series data');
-      } finally {
-        setIsLoading(false);
+        } catch (error) {
+        console.error("Error fetching seasons:", error);
+        setError("Failed to load seasons");
       }
     };
 
     fetchSeasons();
-  }, [content?.id, content?.imdb_id, selectedSeason]);
+  }, [content?.id]);
+
+  const fetchTorrents = useCallback(async (imdbId: string, seasonNumber: number, episodeNumber: number) => {
+    try {
+      const response = await axios.get(
+        `${TORRENTIO_BASE_URL}/stream/series/${imdbId}:${seasonNumber}:${episodeNumber}.json`
+      );
+      
+      if (!response.data?.streams?.length) return null;
+
+      return response.data.streams.map((stream: any) => ({
+        infoHash: stream.infoHash,
+        quality: stream.title.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1] || 'Unknown',
+        size: stream.title.match(/\{(.*?)\}/)?.[1] || 'Unknown',
+        seeds: parseInt(stream.title.match(/Seeds: (\d+)/)?.[1] || '0'),
+        peers: parseInt(stream.title.match(/Peers: (\d+)/)?.[1] || '0'),
+        provider: stream.title.split('\n')[0],
+        title: stream.title,
+        magnetLink: `magnet:?xt=urn:btih:${stream.infoHash}&tr=udp://tracker.opentrackr.org:1337/announce`
+      })).sort((a: TorrentInfo, b: TorrentInfo) => b.seeds - a.seeds);
+    } catch (error) {
+      console.error(`Error fetching torrent: S${seasonNumber}E${episodeNumber}`, error);
+      return null;
+    }
+  }, []);
+
+  const fetchEpisodesForSeason = useCallback(
+    async (seasonNumber: number) => {
+      if (!content?.id || !content?.imdb_id || episodeCache[seasonNumber]) return;
+
+      setLoadingSeasons((prev) => [...prev, seasonNumber]);
+      try {
+        const episodesResponse = await axios.get(
+          `https://api.themoviedb.org/3/tv/${
+            content.id
+          }/season/${seasonNumber}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
+        );
+
+        const episodes = episodesResponse.data.episodes;
+        setEpisodeCache((prev) => ({
+          ...prev,
+          [seasonNumber]: episodes,
+        }));
+
+        if (seasonNumber === selectedSeason) {
+          setEpisodes(episodes);
+          
+          // Fetch torrents for each episode
+          const newTorrents: { [key: string]: TorrentInfo[] } = {};
+          for (const episode of episodes) {
+            await delay(300);
+            const torrentData = await fetchTorrents(content.imdb_id, seasonNumber, episode.episode_number);
+            if (torrentData?.length) {
+              newTorrents[episode.episode_number] = torrentData;
+            }
+          }
+          setTorrents(newTorrents);
+        }
+      } catch (error) {
+        console.error(
+          `Error fetching episodes for season ${seasonNumber}:`,
+          error
+        );
+      } finally {
+        setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
+      }
+    },
+    [content?.id, content?.imdb_id, selectedSeason, episodeCache, fetchTorrents]
+  );
+
+  // Handle season change
+  useEffect(() => {
+    if (selectedSeason) {
+      if (episodeCache[selectedSeason]) {
+        setEpisodes(episodeCache[selectedSeason]);
+      } else {
+        fetchEpisodesForSeason(selectedSeason);
+      }
+    }
+  }, [selectedSeason, fetchEpisodesForSeason]);
+
+  // Pre-fetch next season
+  useEffect(() => {
+    if (selectedSeason && seasons.length > 0) {
+      const nextSeason = selectedSeason + 1;
+      if (seasons.find((s) => s.season_number === nextSeason)) {
+        fetchEpisodesForSeason(nextSeason);
+      }
+    }
+  }, [selectedSeason, seasons, fetchEpisodesForSeason]);
 
   if (isLoading) return <LoadingIndicator />;
   if (error) return <ErrorMessage message={error} />;
@@ -105,18 +163,28 @@ export const TVProcess = ({
   return (
     <div className="space-y-8">
       {/* Season Selector */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-800/50">
         {seasons.map((season) => (
           <button
             key={season.season_number}
             onClick={() => setSelectedSeason(season.season_number)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-              selectedSeason === season.season_number
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-800/60 text-gray-300 hover:bg-gray-800'
+            disabled={loadingSeasons.includes(season.season_number)}
+            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative
+              ${
+                selectedSeason === season.season_number
+                  ? "bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg shadow-violet-500/25 scale-105"
+                  : "bg-slate-800/50 text-slate-300 hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-indigo-500/20 hover:text-white border border-violet-500/20"
+              } ${
+              loadingSeasons.includes(season.season_number) ? "opacity-50" : ""
             }`}
           >
             Season {season.season_number}
+            {loadingSeasons.includes(season.season_number) && (
+              <span className="absolute -top-1 -right-1 w-2 h-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -127,8 +195,7 @@ export const TVProcess = ({
           episodes={episodes}
           selectedSeason={selectedSeason}
           onWatch={(episode) => {
-            // Handle episode watch action
-            console.log('Watch episode:', episode);
+            console.log("Watch episode:", episode);
           }}
           torrents={torrents}
           selectedQuality={selectedQuality}

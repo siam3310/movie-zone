@@ -44,15 +44,15 @@ const EpisodeList = ({
   return (
     <div className="space-y-6">
       {/* Quality Filter */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 p-1">
         {qualities.map((quality) => (
           <button
             key={quality}
             onClick={() => setSelectedQuality(quality)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-              selectedQuality === quality
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-800/60 text-gray-300 hover:bg-gray-800'
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 
+            ${selectedQuality === quality
+              ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg shadow-violet-500/25 scale-105'
+              : 'bg-slate-800/50 text-slate-300 hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-indigo-500/20 hover:text-white border border-violet-500/20'
             }`}
           >
             {quality}
