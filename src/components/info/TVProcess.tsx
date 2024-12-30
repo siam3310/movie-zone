@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
 import ErrorMessage from "./ErrorMessage";
-import LoadingIndicator from "../common/LoadingIndicator";
 import EpisodeList from "./EpisodeList";
 import axios from "axios";
 import { TorrentInfo } from "@/types/torrent";
@@ -60,9 +59,11 @@ export const TVProcess = ({
             setSelectedSeason(response.data.seasons[0].season_number);
           }
         } catch (error) {
-        console.error("Error fetching seasons:", error);
-        setError("Failed to load seasons");
-      }
+          console.error("Error fetching seasons:", error);
+          setError("Failed to load seasons");
+        } finally {
+          setIsLoading(false);
+        }
     };
 
     fetchSeasons();
@@ -157,8 +158,15 @@ export const TVProcess = ({
     }
   }, [selectedSeason, seasons, fetchEpisodesForSeason]);
 
-  if (isLoading) return <LoadingIndicator />;
   if (error) return <ErrorMessage message={error} />;
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
