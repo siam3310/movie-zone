@@ -233,10 +233,11 @@ function TVShows() {
         </h2>
       </div>
       <div
-        className={`${viewMode === "grid"
+        className={`${
+          viewMode === "grid"
             ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
             : "flex flex-col gap-4"
-          }`}
+        }`}
       >
         {shows.map((show) => (
           <div key={show.id} className="group relative">
@@ -251,37 +252,84 @@ function TVShows() {
     return (
       <div className="mt-[68px] min-h-screen bg-[#141414]">
         <div className="px-2 py-6 md:px-3 lg:px-4">
+          {/* Mobile Skeleton Button */}
+          <div className="md:hidden mb-4">
+            <Skeleton
+              variant="rectangular"
+              height={50}
+              sx={{ bgcolor: "#2b2b2b", borderRadius: "0.75rem" }}
+            />
+          </div>
+
           <div className="flex gap-6">
             {/* Filter Skeleton */}
             <div className="hidden md:block w-[280px] flex-shrink-0">
-              <Skeleton
-                variant="rectangular"
-                height={600}
-                sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
-              />
+              <div className="sticky top-[84px]">
+                <div className="bg-[#2b2b2b] rounded-xl overflow-hidden">
+                  {/* Filter Header Skeleton */}
+                  <Skeleton
+                    variant="rectangular"
+                    height={60}
+                    sx={{ bgcolor: "#232323" }}
+                  />
+                  {/* Filter Content Skeleton */}
+                  {[...Array(4)].map((_, index) => (
+                    <div key={index} className="px-4 py-3">
+                      <Skeleton
+                        variant="text"
+                        width={120}
+                        height={24}
+                        sx={{ bgcolor: "#232323", marginBottom: "12px" }}
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        {[...Array(4)].map((_, idx) => (
+                          <Skeleton
+                            key={idx}
+                            variant="rectangular"
+                            height={36}
+                            sx={{ bgcolor: "#232323", borderRadius: "0.75rem" }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Main Content Skeleton */}
             <div className="flex-1">
+              <div className="flex items-center justify-between mb-6">
+                <Skeleton
+                  variant="text"
+                  width={200}
+                  height={40}
+                  sx={{ bgcolor: "#2b2b2b" }}
+                />
+                <Skeleton
+                  variant="rectangular"
+                  width={100}
+                  height={36}
+                  sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
+                />
+              </div>
               <Skeleton
-                variant="text"
-                width={200}
-                height={40}
-                sx={{ bgcolor: "#2b2b2b", marginBottom: "24px" }}
+                className="mb-8"
+                variant="rectangular"
+                width={100}
+                height={36}
+                sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
               />
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {[...Array(12)].map((_, index) => (
-                  <div
-                    key={index}
-                    className="relative h-[280px] min-w-[160px] md:h-[420px]"
-                  >
+                  <div key={index} className="relative aspect-[2/3] w-full">
                     <Skeleton
                       variant="rectangular"
                       width="100%"
                       height="100%"
                       sx={{
                         bgcolor: "#2b2b2b",
-                        borderRadius: "0.125rem",
+                        borderRadius: "0.5rem",
                         transform: "scale(1)",
                         "&::after": {
                           background:
@@ -291,6 +339,16 @@ function TVShows() {
                     />
                   </div>
                 ))}
+              </div>
+
+              {/* Pagination Skeleton */}
+              <div className="mt-8 flex justify-center">
+                <Skeleton
+                  variant="rectangular"
+                  width={300}
+                  height={40}
+                  sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
+                />
               </div>
             </div>
           </div>
@@ -342,12 +400,12 @@ function TVShows() {
           {/* Mobile Filter Drawer */}
           {isMobileFilterOpen && (
             <div className="fixed inset-0 bg-black/60 z-50 md:hidden">
-              <div 
+              <div
                 className="absolute inset-0"
                 onClick={() => setIsMobileFilterOpen(false)}
               />
               <div className="absolute inset-y-0 right-0 w-[300px] bg-[#141414]">
-                <Filter 
+                <Filter
                   onFilterChange={(filters) => {
                     handleFilterChange(filters);
                     setIsMobileFilterOpen(false);
@@ -369,8 +427,9 @@ function TVShows() {
 
             <ShowsGrid
               shows={sortShows(shows)}
-              title={`TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ""
-                }`}
+              title={`TV Shows ${
+                activeFilters.genre ? `- ${activeFilters.genre}` : ""
+              }`}
             />
 
             <Pagination
